@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 import { useReadOnly } from '../ReadOnlyContext';
 
@@ -10,33 +11,61 @@ const EMPTY_TASK = {
   assignee: 'user',
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
+
 export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
   const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_TASK);
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [otherYearList, setOtherYearList] = useState([]);
+  const [loadingYear, setLoadingYear] = useState(false);
+
+  // App.jsx כבר מחזיק את השנה הנוכחית מעודכנת (checklist prop) — לשנים אחרות שולפים בנפרד
+  const isCurrentYear = selectedYear === CURRENT_YEAR;
+  const list = isCurrentYear ? checklist : otherYearList;
+
+  useEffect(() => {
+    if (isCurrentYear) return;
+    let active = true;
+    setLoadingYear(true);
+    axios.get(`/api/checklists/year/${selectedYear}`)
+      .then((res) => { if (active) setOtherYearList(res.data); })
+      .finally(() => { if (active) setLoadingYear(false); });
+    return () => { active = false; };
+  }, [selectedYear, isCurrentYear]);
+
+  const refreshOtherYear = () => {
+    if (isCurrentYear) return;
+    axios.get(`/api/checklists/year/${selectedYear}`).then((res) => setOtherYearList(res.data));
+  };
 
   // סימון הושלם/ממתין — שולח את המשימה המלאה (PUT דורס שדות חסרים)
   // auto_completed: 0 — זו פעולה ידנית, לא הדגל האוטומטי; מנקה אותו אם היה דלוק
-  const toggleComplete = (task) => {
+  const toggleComplete = async (task) => {
     const completed = task.status === 'completed';
     const today = new Date().toISOString().slice(0, 10);
-    onUpdate(task.id, {
+    await onUpdate(task.id, {
       ...task,
       status: completed ? 'pending' : 'completed',
       completed_date: completed ? null : today,
       auto_completed: 0,
     });
+    refreshOtherYear();
   };
 
   // אישור פיקוח בלחיצה אחת — "ההשלמה האוטומטית נכונה" (משאיר completed, רק מנקה את הדגל)
-  const confirmAutoCompleted = (task) => {
-    onUpdate(task.id, { ...task, auto_completed: 0 });
+  const confirmAutoCompleted = async (task) => {
+    await onUpdate(task.id, { ...task, auto_completed: 0 });
+    refreshOtherYear();
   };
 
-  const handleDelete = (task) => {
+  const handleDelete = async (task) => {
     if (confirm(`למחוק את המשימה "${task.task_name}"?`)) {
-      onDelete(task.id);
+      await onDelete(task.id);
+      refreshOtherYear();
     }
   };
 
@@ -76,14 +105,15 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
     e.preventDefault();
     try {
       if (editingId) {
-        await onUpdate(editingId, { ...formData, year: new Date().getFullYear() });
+        await onUpdate(editingId, { ...formData, year: selectedYear });
       } else {
         await onAdd({
           ...formData,
-          year: new Date().getFullYear(),
+          year: selectedYear,
           status: 'pending'
         });
       }
+      refreshOtherYear();
       setFormData(EMPTY_TASK);
       setEditingId(null);
       setShowForm(false);
@@ -92,23 +122,29 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
     }
   };
 
-  const getPendingCount = () => checklist.filter(t => t.status === 'pending').length;
-  const getCompletedCount = () => checklist.filter(t => t.status === 'completed').length;
+  const getPendingCount = () => list.filter(t => t.status === 'pending').length;
+  const getCompletedCount = () => list.filter(t => t.status === 'completed').length;
 
   return (
     <div className="page">
-      <h1>✅ משימות שנתיות {new Date().getFullYear()}</h1>
+      <h1>✅ משימות שנתיות {selectedYear}</h1>
 
       <div className="page-controls">
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {!readOnly && (
             <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
               {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
             </button>
           )}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>שנה</label>
+            <select className="filter-select" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
+              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
           <a
             className="btn btn-secondary"
-            href={`/api/export/action-list.csv?year=${new Date().getFullYear()}`}
+            href={`/api/export/action-list.csv?year=${selectedYear}`}
             download
           >
             📥 ייצוא רשימת פעולות (CSV)
@@ -117,7 +153,7 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
         <div className="stats">
           <span>⏳ {getPendingCount()} ממתינות</span>
           <span>✅ {getCompletedCount()} הושלמו</span>
-          <span>📊 {checklist.length} סה"כ</span>
+          <span>📊 {list.length} סה"כ</span>
         </div>
       </div>
 
@@ -192,17 +228,19 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       )}
 
       <div className="checklist-container">
-        {checklist.length === 0 ? (
-          <p className="no-data">אין משימות עדיין</p>
+        {loadingYear ? (
+          <p className="no-data">טוען משימות {selectedYear}...</p>
+        ) : list.length === 0 ? (
+          <p className="no-data">אין משימות עדיין ל-{selectedYear}</p>
         ) : (
           <div className="status-sections">
             <div className="status-section">
               <h2>⏳ ממתינות ({getPendingCount()})</h2>
-              {checklist.filter(t => t.status === 'pending').length === 0 ? (
+              {list.filter(t => t.status === 'pending').length === 0 ? (
                 <p className="no-data">אין משימות ממתינות</p>
               ) : (
                 <ul className="task-list">
-                  {checklist.filter(t => t.status === 'pending').map(task => (
+                  {list.filter(t => t.status === 'pending').map(task => (
                     <li key={task.id} className="task-item">
                       <div className="task-info">
                         <h3>{task.task_name}</h3>
@@ -236,11 +274,11 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
 
             <div className="status-section completed">
               <h2>✅ הושלמו ({getCompletedCount()})</h2>
-              {checklist.filter(t => t.status === 'completed').length === 0 ? (
+              {list.filter(t => t.status === 'completed').length === 0 ? (
                 <p className="no-data">אין משימות הושלמות</p>
               ) : (
                 <ul className="task-list">
-                  {checklist.filter(t => t.status === 'completed').map(task => (
+                  {list.filter(t => t.status === 'completed').map(task => (
                     <li key={task.id} className="task-item completed">
                       <div className="task-info">
                         <h3>{task.task_name}</h3>

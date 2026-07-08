@@ -1,8 +1,12 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import axios from 'axios';
 import ChecklistPage from '../pages/ChecklistPage';
 
+vi.mock('axios');
+
 const entities = [];
+const CURRENT_YEAR = new Date().getFullYear();
 
 describe('ChecklistPage — פיקוח על השלמה אוטומטית (עקב מסמך שהתקבל)', () => {
   test('משימה שהושלמה אוטומטית מציגה תג עם שם המסמך המקושר, וכפתור "אשר"', () => {
@@ -46,5 +50,48 @@ describe('ChecklistPage — פיקוח על השלמה אוטומטית (עקב 
     const [, payload] = onUpdate.mock.calls[0];
     expect(payload.status).toBe('pending');
     expect(payload.auto_completed).toBe(0);
+  });
+});
+
+describe('ChecklistPage — בחירת שנה', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('כברירת מחדל מציגה את השנה הנוכחית מה-checklist prop, בלי לפנות ל-API', () => {
+    const checklist = [{ id: 1, task_name: 'משימת השנה', status: 'pending' }];
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText('משימת השנה')).toBeInTheDocument();
+    expect(axios.get).not.toHaveBeenCalled();
+  });
+
+  test('בחירת שנה אחרת שולפת מ-/api/checklists/year/:year ומציגה את המשימות שלה', async () => {
+    const checklist = [{ id: 1, task_name: 'משימת השנה הנוכחית', status: 'pending' }];
+    vi.mocked(axios.get).mockResolvedValue({
+      data: [{ id: 2, task_name: 'משימת שנה קודמת', status: 'pending' }],
+    });
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: String(CURRENT_YEAR - 1) } });
+
+    expect(await screen.findByText('משימת שנה קודמת')).toBeInTheDocument();
+    expect(screen.queryByText('משימת השנה הנוכחית')).not.toBeInTheDocument();
+    expect(axios.get).toHaveBeenCalledWith(`/api/checklists/year/${CURRENT_YEAR - 1}`);
+  });
+
+  test('הוספת משימה בזמן צפייה בשנה אחרת נשלחת עם אותה שנה, לא השנה הנוכחית', async () => {
+    const onAdd = vi.fn().mockResolvedValue({});
+    vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    render(<ChecklistPage checklist={[]} entities={entities} onAdd={onAdd} onUpdate={() => {}} onDelete={() => {}} />);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: String(CURRENT_YEAR - 1) } });
+    await waitFor(() => expect(axios.get).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: /הוסף משימה/ }));
+    fireEvent.change(screen.getByPlaceholderText('לדוגמה: הגשת דוח 867'), { target: { value: 'משימה משנה שעברה' } });
+    fireEvent.click(screen.getByRole('button', { name: /שמור משימה/ }));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalled());
+    expect(onAdd.mock.calls[0][0].year).toBe(CURRENT_YEAR - 1);
   });
 });

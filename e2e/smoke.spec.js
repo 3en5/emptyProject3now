@@ -275,3 +275,28 @@ test('קליטת "טופס 106" מסמנת אוטומטית את משימת "א�
   await expect(taskItem).toBeVisible();
   await expect(taskItem.getByText(/הושלם אוטומטית/)).toBeVisible();
 });
+
+test('משימות שנתיות: בחירת שנה אחרת מציגה את המשימות של אותה שנה בלבד', async ({ page }) => {
+  await page.goto('/');
+  const year = await page.evaluate(() => new Date().getFullYear());
+  const prevYear = year - 1;
+
+  // משימה ייעודית לשנה קודמת — כדי שההתאמה תהיה חד-משמעית ובלתי-תלויה בזריעה
+  await page.evaluate(async (y) => {
+    await fetch('/api/checklists', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: y, task_name: 'משימת שנה קודמת — טסט', task_category: 'אחר', status: 'pending' }),
+    });
+  }, prevYear);
+
+  await page.getByRole('button', { name: /✅ משימות שנתיות/ }).click();
+  await expect(page.getByText('משימת שנה קודמת — טסט')).not.toBeVisible();
+
+  await page.locator('.filter-select').selectOption(String(prevYear));
+  await expect(page.locator('.page h1')).toContainText(String(prevYear));
+  await expect(page.getByText('משימת שנה קודמת — טסט')).toBeVisible();
+
+  // חזרה לשנה הנוכחית — המשימה מהשנה הקודמת נעלמת שוב
+  await page.locator('.filter-select').selectOption(String(year));
+  await expect(page.getByText('משימת שנה קודמת — טסט')).not.toBeVisible();
+});

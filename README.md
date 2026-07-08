@@ -102,15 +102,15 @@ npm run service:stop     # עצירה
 
 ---
 
-## 🧪 בדיקות (204 טסטים, פירמידה מלאה)
+## 🧪 בדיקות (208 טסטים, פירמידה מלאה)
 
 רצים מול DB מבודד בזיכרון — **לא נוגעים בנתונים האמיתיים**:
 
 ```bash
 npm run test:all         # הכל: API + רכיבים + E2E
 npm run test:api         # 111 טסטי API (node --test + supertest)
-npm run test:components  # 74 טסטי רכיבי React (Vitest + RTL)
-npm run test:e2e         # 19 טסטי E2E בדפדפן (Playwright)
+npm run test:components  # 77 טסטי רכיבי React (Vitest + RTL)
+npm run test:e2e         # 20 טסטי E2E בדפדפן (Playwright)
 ```
 
 ---

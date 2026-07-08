@@ -113,7 +113,7 @@
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), **תצוגת רשימה מתקפלת** (`.documents-list`; כרטיס מקופל כברירת מחדל — שם/סטטוס/גוף/**תג בעלים (👤 אני/בן-זוג)**/🤖 בכותרת; לחיצה פותחת פרטים+פעולות) — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס, בורר "עבור מי" (ניתן לשינוי ישיר מהכרטיס, וגם מתוך תיבת הניתוח עם רמז לשם שזוהה) |
-| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
+| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: **בורר שנה** (ברירת מחדל: השנה הנוכחית — משתמש ב-`checklist` prop; שנה אחרת — שולף בעצמו מ-`/api/checklists/year/:year`), טופס (יצירה+עריכה, המשימה נוצרת עבור השנה הנבחרת), הפרדה בין ממתינות להושלמו |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
 | `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + בורר שנה. שולף `/api/comparison/:year` |
@@ -140,7 +140,7 @@
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
 | `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית**, **שדה "עבור מי" + רמז שם שזוהה** |
-| `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך |
+| `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך, **בורר שנה** (ברירת מחדל בלי קריאת API, שליפת שנה אחרת, הוספת משימה לשנה הנבחרת) |
 | `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים**, **תג/בורר "עבור מי"** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
@@ -193,8 +193,8 @@
 - ⚙️ הגדרת מפתח: `.env.example` → `.env` עם `OPENAI_API_KEY` (ראה `backend/server.js` טוען `dotenv/config`)
 
 ### משימות שנתיות
-- Backend: `backend/routes/checklists.js`
-- Frontend: `pages/ChecklistPage.jsx`
+- Backend: `backend/routes/checklists.js` — `GET /year/:year` לכל שנה, `GET /current` לשנה הנוכחית בלבד
+- Frontend: `pages/ChecklistPage.jsx` — **בורר שנה** (`YEARS = [הבאה, נוכחית, קודמת, לפני-קודמת]`): השנה הנוכחית מוצגת מה-`checklist` prop (מוחזק ב-`App.jsx`, גם משמש את `Dashboard`); כל שנה אחרת נשלפת עצמאית דרך `axios` ישירות מהעמוד (`otherYearList`), בלי לגעת ב-state הגלובלי. הוספה/עדכון/מחיקה בזמן צפייה בשנה אחרת עוברים דרך אותם handlers מ-`App.jsx` (ה-API לא תלוי-שנה), ואז מרעננים (`refreshOtherYear`)
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)
 
 ### השלמה אוטומטית של משימה עקב מסמך שהתקבל
