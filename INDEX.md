@@ -83,7 +83,8 @@
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
-| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס משימה, הפרדה בין ממתינות להושלמו |
+| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
+| `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
 
@@ -137,7 +138,7 @@
 
 ### חשבונות פרטניים
 - Backend: `backend/routes/accounts.js`
-- Frontend: כרגע אין עמוד ייעודי — מוצגים דרך `/api/entities/:id`
+- Frontend: `pages/AccountsPage.jsx` (מחובר ב-`App.jsx`, כפתור ב-`Navigation.jsx`)
 
 ### עמוד הבית / דאשבורד
 - `components/Dashboard.jsx` — כל הלוגיקה של הסטטיסטיקות והתצוגה

@@ -6,6 +6,7 @@ import Navigation from './components/Navigation';
 import EntitiesPage from './pages/EntitiesPage';
 import ChecklistPage from './pages/ChecklistPage';
 import DocumentPage from './pages/DocumentPage';
+import AccountsPage from './pages/AccountsPage';
 
 const API_URL = '/api';
 
@@ -14,6 +15,7 @@ export default function App() {
   const [entities, setEntities] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [checklist, setChecklist] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -24,15 +26,17 @@ export default function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [entitiesRes, docsRes, checklistRes] = await Promise.all([
+      const [entitiesRes, docsRes, checklistRes, accountsRes] = await Promise.all([
         axios.get(`${API_URL}/entities`),
         axios.get(`${API_URL}/documents`),
-        axios.get(`${API_URL}/checklists/current`)
+        axios.get(`${API_URL}/checklists/current`),
+        axios.get(`${API_URL}/accounts`)
       ]);
 
       setEntities(entitiesRes.data);
       setDocuments(docsRes.data);
       setChecklist(checklistRes.data);
+      setAccounts(accountsRes.data);
       setError(null);
     } catch (err) {
       setError('שגיאה בטעינת הנתונים: ' + err.message);
@@ -138,6 +142,38 @@ export default function App() {
     }
   };
 
+  const handleAddAccount = async (accountData) => {
+    try {
+      const response = await axios.post(`${API_URL}/accounts`, accountData);
+      setAccounts([...accounts, response.data]);
+      return response.data;
+    } catch (err) {
+      setError('שגיאה בהוספת חשבון');
+      throw err;
+    }
+  };
+
+  const handleUpdateAccount = async (id, accountData) => {
+    try {
+      const response = await axios.put(`${API_URL}/accounts/${id}`, accountData);
+      setAccounts(accounts.map(a => a.id === id ? { ...a, ...response.data } : a));
+      return response.data;
+    } catch (err) {
+      setError('שגיאה בעדכון חשבון');
+      throw err;
+    }
+  };
+
+  const handleDeleteAccount = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/accounts/${id}`);
+      setAccounts(accounts.filter(a => a.id !== id));
+    } catch (err) {
+      setError('שגיאה במחיקת חשבון');
+      throw err;
+    }
+  };
+
   if (loading) {
     return <div className="container"><p>טוען נתונים...</p></div>;
   }
@@ -183,6 +219,16 @@ export default function App() {
             onAdd={handleAddDocument}
             onUpdate={handleUpdateDocument}
             onDelete={handleDeleteDocument}
+          />
+        )}
+
+        {currentPage === 'accounts' && (
+          <AccountsPage
+            accounts={accounts}
+            entities={entities}
+            onAdd={handleAddAccount}
+            onUpdate={handleUpdateAccount}
+            onDelete={handleDeleteAccount}
           />
         )}
       </main>

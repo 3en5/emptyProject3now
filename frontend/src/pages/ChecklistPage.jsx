@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 
+const EMPTY_TASK = {
+  task_name: '',
+  task_category: '',
+  entity_id: '',
+  required_date: '',
+  assignee: 'user',
+};
+
 export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_TASK);
 
   // סימון הושלם/ממתין — שולח את המשימה המלאה (PUT דורס שדות חסרים)
   const toggleComplete = (task) => {
@@ -20,13 +30,26 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       onDelete(task.id);
     }
   };
-  const [formData, setFormData] = useState({
-    task_name: '',
-    task_category: '',
-    entity_id: '',
-    required_date: '',
-    assignee: 'user'
-  });
+
+  const openAdd = () => {
+    setEditingId(null);
+    setFormData(EMPTY_TASK);
+    setShowForm(true);
+  };
+
+  const openEdit = (task) => {
+    setEditingId(task.id);
+    setFormData({
+      task_name: task.task_name ?? '',
+      task_category: task.task_category ?? '',
+      entity_id: task.entity_id ?? '',
+      required_date: task.required_date ?? '',
+      assignee: task.assignee ?? 'user',
+      status: task.status,
+      completed_date: task.completed_date,
+    });
+    setShowForm(true);
+  };
 
   const categories = [
     'דוח מס הכנסה',
@@ -43,18 +66,17 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await onAdd({
-        ...formData,
-        year: new Date().getFullYear(),
-        status: 'pending'
-      });
-      setFormData({
-        task_name: '',
-        task_category: '',
-        entity_id: '',
-        required_date: '',
-        assignee: 'user'
-      });
+      if (editingId) {
+        await onUpdate(editingId, { ...formData, year: new Date().getFullYear() });
+      } else {
+        await onAdd({
+          ...formData,
+          year: new Date().getFullYear(),
+          status: 'pending'
+        });
+      }
+      setFormData(EMPTY_TASK);
+      setEditingId(null);
       setShowForm(false);
     } catch (error) {
       console.error('Error:', error);
@@ -69,7 +91,7 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       <h1>✅ משימות שנתיות {new Date().getFullYear()}</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+        <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
           {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
         </button>
         <div className="stats">
@@ -143,7 +165,7 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-success">💾 שמור משימה</button>
+            <button type="submit" className="btn btn-success">💾 {editingId ? 'עדכן משימה' : 'שמור משימה'}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>ביטול</button>
           </div>
         </form>
@@ -181,6 +203,9 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                         <button className="btn btn-small btn-success" onClick={() => toggleComplete(task)}>
                           ✔️ סמן כהושלם
                         </button>
+                        <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
+                          ✏️
+                        </button>
                         <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
                           🗑️
                         </button>
@@ -207,6 +232,9 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                       <div className="task-actions">
                         <button className="btn btn-small btn-secondary" onClick={() => toggleComplete(task)}>
                           ↩️ החזר לממתין
+                        </button>
+                        <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
+                          ✏️
                         </button>
                         <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
                           🗑️

@@ -23,6 +23,14 @@ export default function Navigation({ currentPage, onPageChange }) {
         </li>
         <li>
           <button
+            className={`nav-button ${currentPage === 'accounts' ? 'active' : ''}`}
+            onClick={() => onPageChange('accounts')}
+          >
+            💳 חשבונות
+          </button>
+        </li>
+        <li>
+          <button
             className={`nav-button ${currentPage === 'documents' ? 'active' : ''}`}
             onClick={() => onPageChange('documents')}
           >

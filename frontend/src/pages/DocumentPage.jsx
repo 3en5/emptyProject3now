@@ -1,9 +1,19 @@
 import { useState } from 'react';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 
+const EMPTY_DOC = {
+  entity_id: '',
+  document_name: '',
+  document_type: '',
+  required_frequency: 'yearly',
+  required_by_date: '',
+};
+
 export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_DOC);
 
   // עדכון סטטוס מהיר — שולח את המסמך המלא (PUT דורס שדות חסרים)
   const handleStatusChange = (doc, newStatus) => {
@@ -20,25 +30,37 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       onDelete(doc.id);
     }
   };
-  const [formData, setFormData] = useState({
-    entity_id: '',
-    document_name: '',
-    document_type: '',
-    required_frequency: 'yearly',
-    required_by_date: ''
-  });
+
+  const openAdd = () => {
+    setEditingId(null);
+    setFormData(EMPTY_DOC);
+    setShowForm(true);
+  };
+
+  const openEdit = (doc) => {
+    setEditingId(doc.id);
+    setFormData({
+      entity_id: doc.entity_id ?? '',
+      document_name: doc.document_name ?? '',
+      document_type: doc.document_type ?? '',
+      required_frequency: doc.required_frequency ?? 'yearly',
+      required_by_date: doc.required_by_date ?? '',
+      status: doc.status,
+      date_filed: doc.date_filed,
+    });
+    setShowForm(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await onAdd(formData);
-      setFormData({
-        entity_id: '',
-        document_name: '',
-        document_type: '',
-        required_frequency: 'yearly',
-        required_by_date: ''
-      });
+      if (editingId) {
+        await onUpdate(editingId, formData);
+      } else {
+        await onAdd(formData);
+      }
+      setFormData(EMPTY_DOC);
+      setEditingId(null);
       setShowForm(false);
     } catch (error) {
       console.error('Error:', error);
@@ -74,7 +96,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       <h1>📄 ניהול מסמכים</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+        <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
           {showForm ? '❌ ביטול' : '➕ הוסף מסמך'}
         </button>
 
@@ -154,7 +176,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-success">💾 שמור מסמך</button>
+            <button type="submit" className="btn btn-success">💾 {editingId ? 'עדכן מסמך' : 'שמור מסמך'}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>ביטול</button>
           </div>
         </form>
@@ -205,8 +227,11 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                     <option value="verified">✔️ אומת</option>
                     <option value="overdue">⚠️ בעיכוב</option>
                   </select>
+                  <button className="btn btn-small btn-edit" onClick={() => openEdit(doc)}>
+                    ✏️ ערוך
+                  </button>
                   <button className="btn btn-small btn-delete" onClick={() => handleDelete(doc)}>
-                    🗑️ מחק
+                    🗑️
                   </button>
                 </div>
               </div>

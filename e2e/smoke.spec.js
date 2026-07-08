@@ -49,6 +49,26 @@ test('סימון משימה שנתית כהושלמה מעביר אותה למד
   }).toBeGreaterThan(0);
 });
 
+test('הוספת חשבון דרך עמוד החשבונות', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /💳 חשבונות/ }).click();
+  await page.getByRole('button', { name: /הוסף חשבון/ }).click();
+  await page.selectOption('select', { index: 1 }); // בחירת הגוף הראשון
+  await page.fill('input[placeholder*="עו"]', 'עו״ש ראשי');
+  await page.getByRole('button', { name: /💾/ }).click();
+  await expect(page.getByText('עו״ש ראשי')).toBeVisible();
+});
+
+test('עריכת מסמך קיים משנה את שמו', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  const firstCard = page.locator('.document-card').first();
+  await firstCard.getByRole('button', { name: /ערוך/ }).click();
+  await page.locator('form input[type="text"]').first().fill('שם מעודכן בבדיקה');
+  await page.getByRole('button', { name: /עדכן מסמך/ }).click();
+  await expect(page.getByText('שם מעודכן בבדיקה')).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

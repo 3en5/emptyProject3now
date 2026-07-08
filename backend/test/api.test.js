@@ -135,6 +135,58 @@ describe('documents', () => {
   });
 });
 
+describe('accounts', () => {
+  let entityId;
+  beforeEach(async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'בנק', type: 'bank' });
+    entityId = e.body.id;
+  });
+
+  test('POST יוצר חשבון', async () => {
+    const res = await request(app)
+      .post('/api/accounts')
+      .send({ entity_id: entityId, account_name: 'עו״ש', balance: 1000, currency: 'ILS' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.account_name, 'עו״ש');
+    assert.equal(res.body.balance, 1000);
+  });
+
+  test('POST בלי שדות חובה מחזיר 400', async () => {
+    const res = await request(app).post('/api/accounts').send({ balance: 5 });
+    assert.equal(res.status, 400);
+  });
+
+  test('GET מחזיר חשבונות עם entity_name (JOIN)', async () => {
+    await request(app).post('/api/accounts').send({ entity_id: entityId, account_name: 'עו״ש' });
+    const res = await request(app).get('/api/accounts');
+    assert.equal(res.status, 200);
+    assert.equal(res.body[0].entity_name, 'בנק');
+  });
+
+  test('GET /entity/:id מסנן לפי גוף', async () => {
+    await request(app).post('/api/accounts').send({ entity_id: entityId, account_name: 'a' });
+    const res = await request(app).get(`/api/accounts/entity/${entityId}`);
+    assert.equal(res.body.length, 1);
+  });
+
+  test('PUT מעדכן חשבון', async () => {
+    const a = await request(app).post('/api/accounts').send({ entity_id: entityId, account_name: 'a' });
+    const res = await request(app)
+      .put(`/api/accounts/${a.body.id}`)
+      .send({ account_name: 'עודכן', balance: 250, currency: 'USD' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.account_name, 'עודכן');
+    assert.equal(res.body.balance, 250);
+  });
+
+  test('DELETE מוחק חשבון', async () => {
+    const a = await request(app).post('/api/accounts').send({ entity_id: entityId, account_name: 'a' });
+    await request(app).delete(`/api/accounts/${a.body.id}`);
+    const list = await request(app).get('/api/accounts');
+    assert.equal(list.body.length, 0);
+  });
+});
+
 describe('checklists', () => {
   test('POST יוצר משימה, GET /current מחזיר אותה', async () => {
     const year = new Date().getFullYear();

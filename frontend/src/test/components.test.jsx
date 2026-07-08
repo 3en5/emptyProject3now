@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
 import EntityList from '../components/EntityList';
+import AccountsPage from '../pages/AccountsPage';
 
 describe('Navigation', () => {
   test('מרנדר את כל כפתורי הניווט', () => {
@@ -137,5 +138,41 @@ describe('EntityList', () => {
     render(<EntityList entities={entities} onEdit={onEdit} onDelete={() => {}} />);
     fireEvent.click(screen.getAllByText(/ערוך/)[0]);
     expect(onEdit).toHaveBeenCalledWith(1);
+  });
+});
+
+describe('AccountsPage', () => {
+  const entities = [{ id: 1, name: 'בנק מזרחי', type: 'bank' }];
+  const accounts = [
+    { id: 1, entity_id: 1, account_name: 'עו״ש', account_type: 'עו״ש', balance: 1500, currency: 'ILS', entity_name: 'בנק מזרחי' },
+  ];
+
+  beforeEach(() => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  test('מרנדר חשבון קיים עם יתרה', () => {
+    render(<AccountsPage accounts={accounts} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.getByRole('heading', { name: /עו״ש/ })).toBeInTheDocument();
+    expect(screen.getByText(/בנק מזרחי/)).toBeInTheDocument();
+    expect(screen.getByText(/1,500/)).toBeInTheDocument();
+  });
+
+  test('מצב ריק מציג הודעה', () => {
+    render(<AccountsPage accounts={[]} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText(/אין חשבונות/)).toBeInTheDocument();
+  });
+
+  test('כפתור מחיקה קורא ל-onDelete', () => {
+    const onDelete = vi.fn();
+    render(<AccountsPage accounts={accounts} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={onDelete} />);
+    fireEvent.click(screen.getByText(/מחק/));
+    expect(onDelete).toHaveBeenCalledWith(1);
+  });
+
+  test('לחיצה על "הוסף חשבון" פותחת טופס', () => {
+    render(<AccountsPage accounts={[]} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /הוסף חשבון/ }));
+    expect(screen.getByText(/שם החשבון/)).toBeInTheDocument();
   });
 });
