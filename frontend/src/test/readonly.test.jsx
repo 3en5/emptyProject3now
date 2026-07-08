@@ -14,14 +14,14 @@ function renderWith(readOnly, ui) {
 describe('מצב צפייה-בלבד (read-only)', () => {
   test('EntityList — במצב עריכה מציג כפתורי ערוך/מחק', () => {
     renderWith(false, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText(/ערוך/)).toBeInTheDocument();
-    expect(screen.getByText(/מחק/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ערוך/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /מחק/ })).toBeInTheDocument();
   });
 
   test('EntityList — במצב צפייה מסתיר כפתורי ערוך/מחק', () => {
     renderWith(true, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
-    expect(screen.queryByText(/ערוך/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/מחק/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ערוך/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /מחק/ })).not.toBeInTheDocument();
     // אבל התוכן עצמו עדיין מוצג
     expect(screen.getByText(/בנק מזרחי/)).toBeInTheDocument();
   });

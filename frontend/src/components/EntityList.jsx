@@ -48,15 +48,15 @@ export default function EntityList({ entities, onEdit, onDelete }) {
 
               {!readOnly && (
                 <div className="entity-actions">
-                  <button className="btn btn-small btn-edit" onClick={() => onEdit(entity.id)}>
-                    ✏️ ערוך
+                  <button className="btn btn-icon btn-edit" title="ערוך" aria-label="ערוך" onClick={() => onEdit(entity.id)}>
+                    ✏️
                   </button>
-                  <button className="btn btn-small btn-delete" onClick={() => {
+                  <button className="btn btn-icon btn-delete" title="מחק" aria-label="מחק" onClick={() => {
                     if (confirm(`האם אתה בטוח שברצונך למחוק את ${entity.name}?`)) {
                       onDelete(entity.id);
                     }
                   }}>
-                    🗑️ מחק
+                    🗑️
                   </button>
                 </div>
               )}

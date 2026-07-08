@@ -1,3 +1,4 @@
+import 'dotenv/config'; // טוען משתני סביבה מקובץ .env (למשל ANTHROPIC_API_KEY)
 import { init } from './db/init.js';
 import { createApp } from './app.js';
 

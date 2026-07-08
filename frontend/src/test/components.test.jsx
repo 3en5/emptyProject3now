@@ -128,7 +128,7 @@ describe('EntityList', () => {
   test('כפתור מחיקה (אחרי אישור) קורא ל-onDelete עם ה-id', () => {
     const onDelete = vi.fn();
     render(<EntityList entities={entities} onEdit={() => {}} onDelete={onDelete} />);
-    fireEvent.click(screen.getAllByText(/מחק/)[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /מחק/ })[0]);
     expect(window.confirm).toHaveBeenCalled();
     expect(onDelete).toHaveBeenCalledWith(1);
   });
@@ -136,7 +136,7 @@ describe('EntityList', () => {
   test('כפתור עריכה קורא ל-onEdit עם ה-id', () => {
     const onEdit = vi.fn();
     render(<EntityList entities={entities} onEdit={onEdit} onDelete={() => {}} />);
-    fireEvent.click(screen.getAllByText(/ערוך/)[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /ערוך/ })[0]);
     expect(onEdit).toHaveBeenCalledWith(1);
   });
 
@@ -176,7 +176,7 @@ describe('AccountsPage', () => {
   test('כפתור מחיקה קורא ל-onDelete', () => {
     const onDelete = vi.fn();
     render(<AccountsPage accounts={accounts} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={onDelete} />);
-    fireEvent.click(screen.getByText(/מחק/));
+    fireEvent.click(screen.getByRole('button', { name: /מחק/ }));
     expect(onDelete).toHaveBeenCalledWith(1);
   });
 

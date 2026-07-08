@@ -1,14 +1,20 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { runQuery, getOne, getAll } from '../db/helper.js';
 import { upload, UPLOAD_DIR } from '../upload.js';
-import { extractText } from '../extract.js';
-import { classifyText } from '../classify.js';
+import { understandDocument } from '../understand.js';
+import { claudeAvailable } from '../claude.js';
 import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
 import { logActivity } from '../activity.js';
 
 const router = express.Router();
+
+// SHA-256 של קובץ — לזיהוי העלאות כפולות
+function sha256(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
 
 // Get all documents
 router.get('/', (req, res) => {
@@ -119,9 +125,25 @@ router.post('/intake', (req, res) => {
 
     try {
       const filePath = path.join(UPLOAD_DIR, req.file.filename);
-      const text = await extractText(filePath);
+
+      // זיהוי כפילות: אותו תוכן קובץ שכבר קיים במערכת → לא מעלים פעמיים
+      const hash = sha256(filePath);
+      const dup = getOne(`
+        SELECT d.*, e.name as entity_name FROM documents d
+        JOIN financial_entities e ON d.entity_id = e.id
+        WHERE d.file_hash = ? LIMIT 1`, [hash]);
+      if (dup) {
+        try { fs.unlinkSync(filePath); } catch { /* ignore */ } // הקובץ הכפול נמחק
+        return res.status(200).json({
+          action: 'duplicate',
+          existing: dup,
+          note: `הקובץ כבר קיים במערכת כ"${dup.document_name}" (${dup.entity_name})`,
+        });
+      }
+
       const entitiesList = getAll('SELECT id, name FROM financial_entities');
-      const suggestions = classifyText(text, entitiesList);
+      // מנוע היברידי: כללים מקומיים, ונפילה ל-Claude (ראייה) לסרוקים/עברית/פורמט לא מוכר
+      const suggestions = await understandDocument(filePath, entitiesList);
 
       // מועמדים: סלוטים ממתינים ללא קובץ של הגוף שזוהה
       const candidates = suggestions.issuer?.entityId
@@ -139,10 +161,10 @@ router.post('/intake', (req, res) => {
         docId = decision.target.id;
         runQuery(
           `UPDATE documents
-           SET file_path = ?, year = COALESCE(year, ?), required_by_date = COALESCE(required_by_date, ?),
+           SET file_path = ?, file_hash = ?, year = COALESCE(year, ?), required_by_date = COALESCE(required_by_date, ?),
                auto_filed = 1, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
-          [req.file.filename, suggestions.year, suggestions.renewalDate, docId]
+          [req.file.filename, hash, suggestions.year, suggestions.renewalDate, docId]
         );
         logActivity('update', 'document', docId, `נקלט קובץ ותויק אוטומטית אל "${decision.target.document_name}"`);
       } else {
@@ -165,9 +187,9 @@ router.post('/intake', (req, res) => {
           || 'מסמך שנקלט';
         runQuery(
           `INSERT INTO documents
-           (entity_id, document_name, document_type, year, required_by_date, file_path, auto_filed, notes)
-           VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-          [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, 'נקלט אוטומטית דרך תיבת הקליטה']
+           (entity_id, document_name, document_type, year, required_by_date, file_path, file_hash, auto_filed, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, hash, 'נקלט אוטומטית דרך תיבת הקליטה']
         );
         const created = getOne('SELECT id FROM documents ORDER BY id DESC LIMIT 1');
         docId = created.id;
@@ -183,7 +205,11 @@ router.post('/intake', (req, res) => {
         document,
         action: decision.action,
         suggestions,
-        note: text.length === 0 ? 'לא זוהה טקסט — ייתכן שהקובץ סרוק (יידרש OCR בעתיד)' : null,
+        note: suggestions.confidence === 'low'
+          ? (claudeAvailable()
+              ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
+              : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (Claude) הגדירו ANTHROPIC_API_KEY')
+          : null,
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -215,7 +241,8 @@ router.post('/:id/upload', (req, res) => {
       }
     }
 
-    const result = runQuery('UPDATE documents SET file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.file.filename, id]);
+    const hash = sha256(path.join(UPLOAD_DIR, req.file.filename));
+    const result = runQuery('UPDATE documents SET file_path = ?, file_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.file.filename, hash, id]);
     if (!result.success) {
       return res.status(500).json({ error: result.error });
     }
@@ -225,7 +252,7 @@ router.post('/:id/upload', (req, res) => {
   });
 });
 
-// Analyze the attached file — extract text and classify (issuer/docType/year)
+// Analyze the attached file — hybrid understanding (rules + Claude fallback)
 router.post('/:id/analyze', async (req, res) => {
   try {
     const doc = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
@@ -233,14 +260,17 @@ router.post('/:id/analyze', async (req, res) => {
     if (!doc.file_path) return res.status(400).json({ error: 'אין קובץ מצורף לניתוח' });
 
     const filePath = path.join(UPLOAD_DIR, path.basename(doc.file_path));
-    const text = await extractText(filePath);
     const entities = getAll('SELECT id, name FROM financial_entities');
-    const suggestions = classifyText(text, entities);
+    const suggestions = await understandDocument(filePath, entities);
 
     res.json({
       suggestions,
-      extractedChars: text.length,
-      note: text.length === 0 ? 'לא זוהה טקסט — ייתכן שהקובץ סרוק (יידרש OCR בעתיד)' : null,
+      method: suggestions.method,
+      note: suggestions.confidence === 'low'
+        ? (claudeAvailable()
+            ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
+            : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (Claude) הגדירו ANTHROPIC_API_KEY')
+        : null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

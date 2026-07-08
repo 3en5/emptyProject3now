@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS documents (
   status TEXT DEFAULT 'pending',
   notes TEXT,
   file_path TEXT,
+  file_hash TEXT,                -- SHA-256 של הקובץ המצורף — לזיהוי העלאות כפולות
   auto_filed INTEGER DEFAULT 0,  -- תויק אוטומטית דרך תיבת הקליטה — ממתין לאישור/פיקוח
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

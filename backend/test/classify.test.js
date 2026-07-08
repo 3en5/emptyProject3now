@@ -64,6 +64,14 @@ describe('classifyText', () => {
     assert.equal(r.confidence, 'low');
     assert.equal(r.year, null);
   });
+
+  test('עברית הפוכה (כמו שחילוץ PDF מחזיר לעיתים) עדיין מזוהה', () => {
+    // "מזרחי טפחות 867" עם המילים העבריות הפוכות תו-תו
+    const reversed = 'יחרזמ תוחפט 867';
+    const r = classifyText(reversed, ENTITIES, { currentYear: 2026 });
+    assert.equal(r.issuer.name, 'בנק מזרחי'); // זוהה למרות ההיפוך
+    assert.equal(r.docType, 'טופס 867');
+  });
 });
 
 describe('חילוץ מועד חידוש (renewalDate)', () => {

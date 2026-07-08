@@ -217,12 +217,8 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                           <button className="btn btn-small btn-success" onClick={() => toggleComplete(task)}>
                             ✔️ סמן כהושלם
                           </button>
-                          <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
-                            ✏️
-                          </button>
-                          <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
-                            🗑️
-                          </button>
+                          <button className="btn btn-icon btn-edit" title="ערוך" aria-label="ערוך" onClick={() => openEdit(task)}>✏️</button>
+                          <button className="btn btn-icon btn-delete" title="מחק" aria-label="מחק" onClick={() => handleDelete(task)}>🗑️</button>
                         </>)}
                       </div>
                     </li>
@@ -249,12 +245,8 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                           <button className="btn btn-small btn-secondary" onClick={() => toggleComplete(task)}>
                             ↩️ החזר לממתין
                           </button>
-                          <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
-                            ✏️
-                          </button>
-                          <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
-                            🗑️
-                          </button>
+                          <button className="btn btn-icon btn-edit" title="ערוך" aria-label="ערוך" onClick={() => openEdit(task)}>✏️</button>
+                          <button className="btn btn-icon btn-delete" title="מחק" aria-label="מחק" onClick={() => handleDelete(task)}>🗑️</button>
                         </div>
                       )}
                     </li>

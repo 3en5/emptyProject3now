@@ -322,10 +322,10 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                     <option value="verified">✔️ אומת</option>
                     <option value="overdue">⚠️ בעיכוב</option>
                   </select>
-                  <button className="btn btn-small btn-edit" onClick={() => openEdit(doc)}>
-                    ✏️ ערוך
+                  <button className="btn btn-icon btn-edit" title="ערוך" aria-label="ערוך" onClick={() => openEdit(doc)}>
+                    ✏️
                   </button>
-                  <button className="btn btn-small btn-delete" onClick={() => handleDelete(doc)}>
+                  <button className="btn btn-icon btn-delete" title="מחק" aria-label="מחק" onClick={() => handleDelete(doc)}>
                     🗑️
                   </button>
                 </div>

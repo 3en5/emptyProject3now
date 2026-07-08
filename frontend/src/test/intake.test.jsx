@@ -139,6 +139,31 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     await waitFor(() => expect(onAddEntity).toHaveBeenCalledWith({ name: 'חברה ידנית', type: 'bank' }));
   });
 
+  test('קובץ כפול → מציג התראה וקישור לקיים, בלי שדות עריכה', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: { action: 'duplicate', existing: { id: 12, document_name: 'טופס 867', entity_name: 'IBKR' }, note: 'הקובץ כבר קיים במערכת כ"טופס 867" (IBKR)' },
+    });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('dup.pdf');
+    expect(await screen.findByText(/קובץ כפול — כבר קיים במערכת/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /צפייה בקיים/ })).toBeInTheDocument();
+    // אין כפתור "אשר ושמור" עבור כפול
+    expect(screen.queryByRole('button', { name: /אשר ושמור/ })).not.toBeInTheDocument();
+  });
+
+  test('כפתור "השלך" מוחק את המסמך שנקלט', async () => {
+    const onRefresh = vi.fn();
+    vi.mocked(axios.post).mockResolvedValue({ data: INTAKE_MATCHED });
+    vi.mocked(axios.delete).mockResolvedValue({ data: {} });
+    render(<IntakeBox entities={entities} onRefresh={onRefresh} />);
+    dropFile('x.pdf');
+    await screen.findByText(/אשר ושמור/);
+    fireEvent.click(screen.getByRole('button', { name: /השלך/ }));
+    await waitFor(() => expect(axios.delete).toHaveBeenCalledWith('/api/documents/42'));
+    // השורה הוסרה
+    await waitFor(() => expect(screen.queryByText(/אשר ושמור/)).not.toBeInTheDocument());
+  });
+
   test('כמה קבצים בבת אחת — כל אחד מקבל שורת תוצאה', async () => {
     vi.mocked(axios.post)
       .mockResolvedValueOnce({ data: INTAKE_MATCHED })

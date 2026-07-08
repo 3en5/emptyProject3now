@@ -183,4 +183,23 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
     const res = await request(app).post('/api/documents/intake');
     assert.equal(res.status, 400);
   });
+
+  test('קובץ כפול (אותו תוכן) → action=duplicate, לא נוצר מסמך שני', async () => {
+    await request(app).post('/api/entities').send({ name: 'IBKR', type: 'investment' });
+    const pdf = makePdf('Interactive Brokers Annual Activity Statement 2025');
+
+    const first = await request(app).post('/api/documents/intake').attach('file', pdf, 'a.pdf');
+    assert.notEqual(first.body.action, 'duplicate');
+    const countAfterFirst = getOne('SELECT COUNT(*) as c FROM documents').c;
+
+    // אותו קובץ בדיוק — צריך להיחסם ככפול
+    const second = await request(app).post('/api/documents/intake').attach('file', pdf, 'a-copy.pdf');
+    assert.equal(second.status, 200);
+    assert.equal(second.body.action, 'duplicate');
+    assert.ok(second.body.existing.id);
+    assert.match(second.body.note, /כבר קיים/);
+
+    const countAfterSecond = getOne('SELECT COUNT(*) as c FROM documents').c;
+    assert.equal(countAfterSecond, countAfterFirst); // לא נוסף מסמך
+  });
 });

@@ -171,8 +171,8 @@ export default function AccountsPage({ accounts, entities, onAdd, onUpdate, onDe
               </div>
               {!readOnly && (
                 <div className="entity-actions">
-                  <button className="btn btn-small btn-edit" onClick={() => openEdit(acc)}>✏️ ערוך</button>
-                  <button className="btn btn-small btn-delete" onClick={() => handleDelete(acc)}>🗑️ מחק</button>
+                  <button className="btn btn-icon btn-edit" title="ערוך" aria-label="ערוך" onClick={() => openEdit(acc)}>✏️</button>
+                  <button className="btn btn-icon btn-delete" title="מחק" aria-label="מחק" onClick={() => handleDelete(acc)}>🗑️</button>
                 </div>
               )}
             </div>

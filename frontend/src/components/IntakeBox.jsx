@@ -13,6 +13,7 @@ const ACTION_META = {
   matched: { icon: '📌', label: 'זוהה ותויק לסלוט קיים' },
   create: { icon: '🆕', label: 'זוהה — נוצר מסמך חדש' },
   unmatched: { icon: '❓', label: 'לא זוהה גוף — נא לשייך' },
+  duplicate: { icon: '♻️', label: 'קובץ כפול — כבר קיים במערכת' },
 };
 
 const CONF_HE = { high: 'גבוה', medium: 'בינוני', low: 'נמוך' };
@@ -41,6 +42,16 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
         const form = new FormData();
         form.append('file', file);
         const { data } = await axios.post('/api/documents/intake', form);
+
+        // קובץ כפול — לא נוצר מסמך; מציגים התראה וקישור לקיים
+        if (data.action === 'duplicate') {
+          setResults((prev) => [...prev, {
+            key: `dup-${data.existing.id}-${Date.now()}`,
+            fileName: file.name, action: 'duplicate', note: data.note, existing: data.existing, saved: true,
+          }]);
+          continue;
+        }
+
         const issuer = data.suggestions?.issuer;
         setResults((prev) => [...prev, {
           key: `doc-${data.document.id}-${Date.now()}`,
@@ -119,6 +130,17 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
     }
   };
 
+  // השלכה — מוחק את המסמך שנקלט (למשל תיוק שגוי) כדי לאפשר העלאה מחדש
+  const discardResult = async (r) => {
+    try {
+      await axios.delete(`/api/documents/${r.document.id}`);
+      setResults((prev) => prev.filter((x) => x.key !== r.key));
+      onRefresh?.();
+    } catch (err) {
+      patch(r.key, { error: err.response?.data?.error || err.message });
+    }
+  };
+
   return (
     <div className="intake-box">
       <div
@@ -157,7 +179,12 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                     {r.confidence && <span className={`confidence-chip conf-${r.confidence}`}>ביטחון: {CONF_HE[r.confidence]}</span>}
                   </div>
                   {r.note && <p className="intake-note">⚠️ {r.note}</p>}
-                  {r.saved ? (
+                  {r.action === 'duplicate' ? (
+                    <p className="intake-saved">
+                      ♻️ לא הועלה שוב.{' '}
+                      <a href={`/api/documents/${r.existing.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה בקיים</a>
+                    </p>
+                  ) : r.saved ? (
                     <p className="intake-saved">✅ אושר ונשמר — {r.document.document_name} ({r.document.entity_name})</p>
                   ) : (
                     <div className="intake-fields">
@@ -214,6 +241,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                       <div className="intake-actions">
                         <button className="btn btn-small btn-success" onClick={() => confirmResult(r)}>✅ אשר ושמור</button>
                         <a className="btn btn-small btn-secondary" href={`/api/documents/${r.document.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה</a>
+                        <button className="btn btn-small btn-delete" title="השלך — מחק ואפשר העלאה מחדש" onClick={() => discardResult(r)}>🗑️ השלך</button>
                       </div>
                     </div>
                   )}

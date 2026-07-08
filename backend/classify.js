@@ -32,10 +32,14 @@ const DOC_TYPES = [
   { canonical: 'אישור ניכוי מס במקור', terms: ['ניכוי מס במקור'] },
 ];
 
+const reverse = (s) => s.split('').reverse().join('');
+
+// חיפוש מונח — גם בכיוון רגיל וגם הפוך, כי pdf-parse מחזיר עברית הפוכה לעיתים קרובות.
 function findMatch(text, dictionary) {
   for (const entry of dictionary) {
     for (const term of entry.terms) {
-      if (text.includes(term.toLowerCase())) {
+      const t = term.toLowerCase();
+      if (text.includes(t) || text.includes(reverse(t))) {
         return { canonical: entry.canonical, term };
       }
     }
