@@ -98,3 +98,22 @@
 .doc-info p {
   margin-bottom: 0.5rem;
 }
+
+.doc-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.status-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}

@@ -29,7 +29,7 @@
 | `backend/db/schema.sql` | הגדרת כל הטבלאות והאינדקסים. **כאן משנים מבנה נתונים** (עמודות, טבלאות) |
 | `backend/db/init.js` | אתחול ה-DB: טעינת/יצירת הקובץ, הרצת הסכימה, שמירה לדיסק (`saveDatabase`) |
 | `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן** |
-| `backend/db/seed.js` | זריעת מצאי אמיתי (18 גופים, מסמכים מצופים, משימות תב"ר). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
+| `backend/db/seed.js` | זריעת מצאי אמיתי (18 גופים, מסמכים מצופים, משימות שנתיות). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
 
 ### Backend — API Routes (`backend/routes/`)
 
@@ -38,7 +38,7 @@
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
 | `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס | `/api/documents` |
-| `backend/routes/checklists.js` | CRUD למשימות תב"ר שנתי + סינון לפי שנה/סטטוס | `/api/checklists` |
+| `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/server.js` | נקודת הכניסה של ה-backend: Express, middleware, חיבור ה-routes, הפעלת השרת |
 
 ### Frontend — שורש (`frontend/`)
@@ -64,7 +64,7 @@
 | `styles/dashboard.css` | עמוד הבית: סטטיסטיקות, גופים לפי סוג, רשימות ממתינים |
 | `styles/forms.css` | טפסים, כפתורים, פקדי סינון |
 | `styles/cards.css` | כרטיסי גופים ומסמכים |
-| `styles/checklist.css` | תב"ר שנתי: מכולה, סקשנים, משימות |
+| `styles/checklist.css` | משימות שנתיות: מכולה, סקשנים, משימות |
 | `styles/misc.css` | הודעות שגיאה, מצב ריק, ורספונסיביות (media query) |
 
 ### Frontend — רכיבים (`frontend/src/components/`)
@@ -82,7 +82,7 @@
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
-| `frontend/src/pages/ChecklistPage.jsx` | עמוד תב"ר שנתי: טופס משימה, הפרדה בין ממתינות להושלמו |
+| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס משימה, הפרדה בין ממתינות להושלמו |
 
 ---
 
@@ -104,7 +104,7 @@
 - Frontend: `pages/DocumentPage.jsx`
 - סטטוסים/צבעים: מוגדרים בתוך `DocumentPage.jsx` (`getStatusBadge`, `getStatusColor`)
 
-### תב"ר שנתי (משימות)
+### משימות שנתיות
 - Backend: `backend/routes/checklists.js`
 - Frontend: `pages/ChecklistPage.jsx`
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)

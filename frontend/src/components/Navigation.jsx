@@ -34,7 +34,7 @@ export default function Navigation({ currentPage, onPageChange }) {
             className={`nav-button ${currentPage === 'checklist' ? 'active' : ''}`}
             onClick={() => onPageChange('checklist')}
           >
-            ✅ תב"ר שנתי
+            ✅ משימות שנתיות
           </button>
         </li>
       </ul>

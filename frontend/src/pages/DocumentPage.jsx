@@ -1,8 +1,24 @@
 import { useState } from 'react';
 
-export default function DocumentPage({ documents, entities, onAdd, onUpdate }) {
+export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
+
+  // עדכון סטטוס מהיר — שולח את המסמך המלא (PUT דורס שדות חסרים)
+  const handleStatusChange = (doc, newStatus) => {
+    const today = new Date().toISOString().slice(0, 10);
+    onUpdate(doc.id, {
+      ...doc,
+      status: newStatus,
+      date_filed: newStatus === 'submitted' && !doc.date_filed ? today : doc.date_filed,
+    });
+  };
+
+  const handleDelete = (doc) => {
+    if (confirm(`למחוק את המסמך "${doc.document_name}"?`)) {
+      onDelete(doc.id);
+    }
+  };
   const [formData, setFormData] = useState({
     entity_id: '',
     document_name: '',
@@ -166,6 +182,21 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate }) {
                   {doc.date_filed && (
                     <p><strong>הוגש:</strong> {new Date(doc.date_filed).toLocaleDateString('he-IL')}</p>
                   )}
+                </div>
+                <div className="doc-actions">
+                  <select
+                    className="status-select"
+                    value={doc.status}
+                    onChange={(e) => handleStatusChange(doc, e.target.value)}
+                  >
+                    <option value="pending">⏳ ממתין</option>
+                    <option value="submitted">✅ הוגש</option>
+                    <option value="verified">✔️ אומת</option>
+                    <option value="overdue">⚠️ בעיכוב</option>
+                  </select>
+                  <button className="btn btn-small btn-delete" onClick={() => handleDelete(doc)}>
+                    🗑️ מחק
+                  </button>
                 </div>
               </div>
             ))}

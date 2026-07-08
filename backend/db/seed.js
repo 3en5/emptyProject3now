@@ -50,7 +50,7 @@ const EXPECTED_DOCS = {
   'משכנתא — דירה להשקעה': [{ name: 'אישור יתרת משכנתא', freq: 'yearly' }],
 };
 
-// משימות תב"ר שנתי (Outbound — לרשויות)
+// משימות שנתיות (Outbound — לרשויות)
 const CHECKLIST = [
   { task: 'הגשת דוח שנתי למס הכנסה', cat: 'דוח מס הכנסה', assignee: 'user' },
   { task: 'דוח מע"מ', cat: 'דוח מע"מ', assignee: 'user' },
@@ -100,7 +100,7 @@ async function seed() {
   }
   console.log(`   → ${docCount} מסמכים`);
 
-  console.log('✅ מכניס משימות תב"ר...');
+  console.log('✅ מכניס משימות שנתיות...');
   for (const t of CHECKLIST) {
     runQuery(
       'INSERT INTO annual_checklist (year, task_name, task_category, assignee, status) VALUES (?, ?, ?, ?, ?)',

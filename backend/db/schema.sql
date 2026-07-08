@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS documents (
   FOREIGN KEY (entity_id) REFERENCES financial_entities(id)
 );
 
--- Annual Checklist (תב"ר שנתי)
+-- Annual Checklist (משימות שנתיות)
 CREATE TABLE IF NOT EXISTS annual_checklist (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   year INTEGER NOT NULL,

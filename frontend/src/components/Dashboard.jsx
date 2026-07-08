@@ -33,7 +33,7 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
           <p className="stat-details">⏳ {pendingDocs} ממתינים | ✅ {completedDocs} הגישו</p>
         </div>
         <div className="stat-card">
-          <h3>✅ תב"ר שנתי</h3>
+          <h3>✅ משימות שנתיות</h3>
           <p className="stat-number">{checklist.length}</p>
           <p className="stat-details">⏳ {pendingTasks} ממתינים | ✅ {completedTasks} הושלמו</p>
         </div>
@@ -82,7 +82,7 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
       </div>
 
       <div className="dashboard-section">
-        <h2>✅ משימות תב"ר שנתי ממתינות</h2>
+        <h2>✅ משימות שנתיות ממתינות</h2>
         {pendingTasks > 0 ? (
           <div className="pending-list">
             {checklist.filter(t => t.status === 'pending').slice(0, 5).map(task => (

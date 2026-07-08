@@ -96,6 +96,16 @@ export default function App() {
     }
   };
 
+  const handleDeleteDocument = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/documents/${id}`);
+      setDocuments(documents.filter(d => d.id !== id));
+    } catch (err) {
+      setError('שגיאה במחיקת מסמך');
+      throw err;
+    }
+  };
+
   const handleAddChecklistTask = async (taskData) => {
     try {
       const response = await axios.post(`${API_URL}/checklists`, taskData);
@@ -103,6 +113,27 @@ export default function App() {
       return response.data;
     } catch (err) {
       setError('שגיאה בהוספת משימה');
+      throw err;
+    }
+  };
+
+  const handleUpdateChecklistTask = async (id, taskData) => {
+    try {
+      const response = await axios.put(`${API_URL}/checklists/${id}`, taskData);
+      setChecklist(checklist.map(t => t.id === id ? response.data : t));
+      return response.data;
+    } catch (err) {
+      setError('שגיאה בעדכון משימה');
+      throw err;
+    }
+  };
+
+  const handleDeleteChecklistTask = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/checklists/${id}`);
+      setChecklist(checklist.filter(t => t.id !== id));
+    } catch (err) {
+      setError('שגיאה במחיקת משימה');
       throw err;
     }
   };
@@ -140,7 +171,8 @@ export default function App() {
             checklist={checklist}
             entities={entities}
             onAdd={handleAddChecklistTask}
-            onRefresh={fetchData}
+            onUpdate={handleUpdateChecklistTask}
+            onDelete={handleDeleteChecklistTask}
           />
         )}
 
@@ -150,6 +182,7 @@ export default function App() {
             entities={entities}
             onAdd={handleAddDocument}
             onUpdate={handleUpdateDocument}
+            onDelete={handleDeleteDocument}
           />
         )}
       </main>

@@ -1,7 +1,24 @@
 import { useState } from 'react';
 
-export default function ChecklistPage({ checklist, entities, onAdd }) {
+export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
+
+  // סימון הושלם/ממתין — שולח את המשימה המלאה (PUT דורס שדות חסרים)
+  const toggleComplete = (task) => {
+    const completed = task.status === 'completed';
+    const today = new Date().toISOString().slice(0, 10);
+    onUpdate(task.id, {
+      ...task,
+      status: completed ? 'pending' : 'completed',
+      completed_date: completed ? null : today,
+    });
+  };
+
+  const handleDelete = (task) => {
+    if (confirm(`למחוק את המשימה "${task.task_name}"?`)) {
+      onDelete(task.id);
+    }
+  };
   const [formData, setFormData] = useState({
     task_name: '',
     task_category: '',
@@ -48,7 +65,7 @@ export default function ChecklistPage({ checklist, entities, onAdd }) {
 
   return (
     <div className="page">
-      <h1>✅ תב"ר שנתי {new Date().getFullYear()}</h1>
+      <h1>✅ משימות שנתיות {new Date().getFullYear()}</h1>
 
       <div className="page-controls">
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
@@ -150,7 +167,15 @@ export default function ChecklistPage({ checklist, entities, onAdd }) {
                         {task.entity_name && <span className="badge entity">{task.entity_name}</span>}
                         {task.required_date && <span className="badge date">{new Date(task.required_date).toLocaleDateString('he-IL')}</span>}
                       </div>
-                      <span className="assignee">👤 {task.assignee === 'spouse' ? 'בן/בת זוג' : 'אני'}</span>
+                      <div className="task-actions">
+                        <span className="assignee">👤 {task.assignee === 'spouse' ? 'בן/בת זוג' : 'אני'}</span>
+                        <button className="btn btn-small btn-success" onClick={() => toggleComplete(task)}>
+                          ✔️ סמן כהושלם
+                        </button>
+                        <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
+                          🗑️
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -168,6 +193,15 @@ export default function ChecklistPage({ checklist, entities, onAdd }) {
                       <div className="task-info">
                         <h3>{task.task_name}</h3>
                         {task.task_category && <span className="badge">{task.task_category}</span>}
+                        {task.completed_date && <span className="badge date">הושלם: {new Date(task.completed_date).toLocaleDateString('he-IL')}</span>}
+                      </div>
+                      <div className="task-actions">
+                        <button className="btn btn-small btn-secondary" onClick={() => toggleComplete(task)}>
+                          ↩️ החזר לממתין
+                        </button>
+                        <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
+                          🗑️
+                        </button>
                       </div>
                     </li>
                   ))}

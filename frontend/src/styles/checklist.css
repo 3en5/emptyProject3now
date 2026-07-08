@@ -1,4 +1,4 @@
-/* checklist.css — תב"ר שנתי: מכולה, סקשנים, משימות */
+/* checklist.css — משימות שנתיות: מכולה, סקשנים, משימות */
 
 .checklist-container {
   background: var(--card-bg);
@@ -81,4 +81,11 @@
   white-space: nowrap;
   font-size: 0.9rem;
   color: #666;
+}
+
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
