@@ -47,6 +47,38 @@
   font-size: 0.9rem;
 }
 
+/* חיווי סטטוס הזיהוי החכם */
+.intake-ai-status {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+}
+
+.intake-ai-status.on {
+  background: #eafaf1;
+  color: #1e8449;
+  border: 1px solid #a9dfbf;
+}
+
+.intake-ai-status.off {
+  background: #fef9e7;
+  color: #9a7d0a;
+  border: 1px solid #f7dc6f;
+}
+
+.intake-ai-status code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+}
+
+.intake-method {
+  font-size: 0.82rem;
+  color: #555;
+  margin-top: 0.3rem;
+}
+
 .intake-results {
   margin-top: 1rem;
   display: flex;

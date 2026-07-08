@@ -3,8 +3,14 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { gptAvailable } from '../gpt.js';
 
 const router = express.Router();
+
+// סטטוס הזיהוי החכם — האם מפתח OpenAI מוגדר. מאפשר ל-UI להראות אם GPT פעיל.
+router.get('/ai-status', (req, res) => {
+  res.json({ configured: gptAvailable(), model: process.env.FINANCE_GPT_MODEL || 'gpt-4o' });
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, '../..'); // backend/routes → שורש הפרויקט

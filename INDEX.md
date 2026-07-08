@@ -60,7 +60,7 @@
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
-| `backend/routes/system.js` | עדכון תוכנה מול git: גרסה נוכחית, בדיקת עדכון (`fetch`+השוואה), החלה (`pull`+build). `spawn` shell, פקודות קבועות ללא קלט משתמש | `/api/system/version` · `/update/check` · `/update/apply` |
+| `backend/routes/system.js` | עדכון תוכנה מול git + סטטוס זיהוי חכם (`ai-status` — האם `OPENAI_API_KEY` מוגדר). `spawn` shell, פקודות קבועות ללא קלט משתמש | `/api/system/version` · `/update/check` · `/update/apply` · `/ai-status` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes + **הגשת frontend/dist** (production). מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 

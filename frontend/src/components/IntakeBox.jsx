@@ -1,7 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useReadOnly } from '../ReadOnlyContext';
 import { ENTITY_TYPES } from '../constants/entityTypes';
+
+// מי ניתח את המסמך — שקיפות למשתמש (GPT באמת רץ, או רק כללים מקומיים)
+const METHOD_META = {
+  gpt: { icon: '🤖', label: 'זוהה ע״י GPT (ראייה)' },
+  rules: { icon: '📋', label: 'זוהה ע״י כללים מקומיים' },
+};
 
 // תיבת הקליטה החכמה — נקודת הכניסה האחת למסמכים.
 // זורקים קובץ (או כמה) → המערכת מזהה ומתייקת לבד → מוצג "מה הבנתי ולאן תייקתי"
@@ -23,7 +29,22 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState([]);
+  const [aiStatus, setAiStatus] = useState(null); // { configured, model }
   const inputRef = useRef(null);
+
+  // בדיקת סטטוס הזיהוי החכם — כדי להראות למשתמש אם GPT באמת פעיל
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await axios.get('/api/system/ai-status');
+        if (alive && r?.data) setAiStatus(r.data);
+      } catch {
+        if (alive) setAiStatus({ configured: false });
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   if (readOnly) return null;
 
@@ -63,6 +84,8 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
           // שם/סוג הגוף שזוהה — להצעת יצירת גוף חדש (גם כשלא נמצא במערכת)
           detectedName: issuer?.name || '',
           suggestedType: issuer?.suggestedType || '',
+          method: data.suggestions?.method, // 'gpt' | 'rules' — מי ניתח
+          aiError: data.suggestions?.aiError, // GPT הופעל אך נכשל
           document: data.document,
           edit: {
             entity_id: data.document.entity_id,
@@ -166,6 +189,17 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
         />
       </div>
 
+      {aiStatus && (
+        aiStatus.configured ? (
+          <p className="intake-ai-status on">🤖 זיהוי חכם (GPT) פעיל — כל מסמך מנותח בראייה ({aiStatus.model})</p>
+        ) : (
+          <p className="intake-ai-status off">
+            💡 זיהוי חכם (GPT) כבוי — כרגע זיהוי מבוסס כללים מקומיים בלבד.
+            להפעלה: הגדירו <code>OPENAI_API_KEY</code> בקובץ <code>.env</code> והפעילו מחדש את השרת.
+          </p>
+        )
+      )}
+
       {results.length > 0 && (
         <div className="intake-results">
           {results.map((r) => (
@@ -178,6 +212,9 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                     <span>{ACTION_META[r.action]?.icon} <strong>{r.fileName}</strong> — {ACTION_META[r.action]?.label}</span>
                     {r.confidence && <span className={`confidence-chip conf-${r.confidence}`}>ביטחון: {CONF_HE[r.confidence]}</span>}
                   </div>
+                  {r.method && METHOD_META[r.method] && (
+                    <p className="intake-method">{METHOD_META[r.method].icon} {METHOD_META[r.method].label}{r.aiError && ' — GPT נכשל, נופל לכללים'}</p>
+                  )}
                   {r.note && <p className="intake-note">⚠️ {r.note}</p>}
                   {r.action === 'duplicate' ? (
                     <p className="intake-saved">

@@ -54,6 +54,26 @@ describe('classifyText', () => {
     assert.equal(r.docType, 'אישור הפקדות');
   });
 
+  // רגרסיה: מילים כלליות לא יגרמו להתאמת-שווא בביטחון גבוה (הבאג של "מגדל+867")
+  test('"מגדל" ככתובת + סכום שמכיל 867 → לא מזוהה כמגדל/867', () => {
+    const r = classifyText('קבלה על סך 1,867 ש"ח, כתובת: מגדל שלום, תל אביב', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.issuer, null);   // "מגדל" לבד אינו הגוף מגדל ביטוח
+    assert.equal(r.docType, null);  // "867" בתוך סכום אינו טופס 867
+    assert.equal(r.confidence, 'low');
+  });
+
+  test('"בנק לאומי" מזוהה, אבל המילה "לאומי" לבדה לא', () => {
+    const withBank = classifyText('בנק לאומי לישראל — דף חשבון', ENTITIES, { currentYear: 2026 });
+    assert.equal(withBank.issuer.name, 'בנק לאומי');
+    const generic = classifyText('הביטוח הלאומי שילם קצבה', ENTITIES, { currentYear: 2026 });
+    assert.equal(generic.issuer, null); // "לאומי" בהקשר כללי אינו בנק לאומי
+  });
+
+  test('טופס 867 מזוהה רק עם המילה "טופס"', () => {
+    assert.equal(classifyText('טופס 867 ריכוז נתונים', ENTITIES).docType, 'טופס 867');
+    assert.equal(classifyText('יתרה: 8670 ש"ח', ENTITIES).docType, null); // 8670 אינו 867
+  });
+
   test('חילוץ שנה — בוחר את השכיחה, מתעלם משנים לא סבירות', () => {
     const r = classifyText('הופק ב-2026 עבור שנת 2025 2025 (השווה ל-1999)', ENTITIES, { currentYear: 2026 });
     assert.equal(r.year, 2025); // מופיע פעמיים
@@ -65,12 +85,12 @@ describe('classifyText', () => {
     assert.equal(r.year, null);
   });
 
-  test('עברית הפוכה (כמו שחילוץ PDF מחזיר לעיתים) עדיין מזוהה', () => {
-    // "מזרחי טפחות 867" עם המילים העבריות הפוכות תו-תו
+  test('עברית הפוכה/משובשת → לא מזוהה בכוח (ילך ל-GPT, לא התאמת-שווא)', () => {
+    // "מזרחי טפחות 867" עם המילים העבריות הפוכות תו-תו — טקסט משובש.
+    // הגישה הנכונה: לא לנחש; ביטחון נמוך → המנוע ההיברידי נופל ל-GPT (ראייה).
     const reversed = 'יחרזמ תוחפט 867';
     const r = classifyText(reversed, ENTITIES, { currentYear: 2026 });
-    assert.equal(r.issuer.name, 'בנק מזרחי'); // זוהה למרות ההיפוך
-    assert.equal(r.docType, 'טופס 867');
+    assert.equal(r.confidence, 'low');
   });
 });
 

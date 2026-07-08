@@ -122,7 +122,7 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
 
     const res = await request(app)
       .post('/api/documents/intake')
-      .attach('file', makePdf('bank mizrahi tfahot - tofes 867 2025 valid until 31/12/2027'), 'mizrahi.pdf');
+      .attach('file', makePdf('bank mizrahi form 867 2025 valid until 31/12/2027'), 'mizrahi.pdf');
 
     assert.equal(res.status, 201);
     assert.equal(res.body.action, 'create');

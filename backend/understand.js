@@ -40,17 +40,17 @@ export async function understandDocument(filePath, entities = [], opts = {}) {
   const aiFn = opts.aiFn || understandWithGPT;
   const available = opts.available !== undefined ? opts.available : gptAvailable();
 
-  // שלב 1 — כללים מקומיים
+  // שלב 1 — כללים מקומיים (חינם, מיידי)
   const text = await extractText(filePath);
   const rules = classifyText(text, entities);
 
-  // ביטחון גבוה → מספיק, בלי לקרוא ל-GPT (חוסך עלות)
-  if (rules.confidence === 'high' || !available) {
-    return { ...rules, method: 'rules' };
-  }
+  // אין מפתח GPT → עובדים עם הכללים בלבד
+  if (!available) return { ...rules, method: 'rules' };
 
-  // שלב 2 — נפילה ל-GPT
+  // שלב 2 — GPT (ראייה). כשמוגדר מפתח מריצים אותו תמיד — המשתמש הגדיר אותו
+  // כדי לקבל ניתוח אמיתי, וזה מונע התאמות-שווא של הכללים מלהשתלט בשקט.
+  // הכללים משמשים כגיבוי אם GPT נכשל.
   const ai = await aiFn(filePath);
-  if (!ai) return { ...rules, method: 'rules' }; // נכשל/אין מפתח → נשארים עם הכללים
+  if (!ai) return { ...rules, method: 'rules', aiError: true };
   return { ...aiToSuggestions(ai, entities), method: 'gpt' };
 }

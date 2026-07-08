@@ -48,13 +48,25 @@ const ENTITIES = [
 ];
 
 describe('understandDocument — היברידי', () => {
-  test('ביטחון גבוה מהכללים → method=rules, GPT לא נקרא', async () => {
-    const aiFn = () => { throw new Error('לא אמור להיקרא'); };
+  test('GPT זמין → מריצים GPT גם כשהכללים בטוחים (המשתמש הגדיר מפתח בשביל זה)', async () => {
+    let called = false;
+    const aiFn = async () => {
+      called = true;
+      return { issuerName: 'IBKR', docType: 'Annual Activity Statement', entityType: 'investment', year: 2025, renewalDate: '', confidence: 'high' };
+    };
     const file = write('ibkr.pdf', makePdf('Interactive Brokers Annual Activity Statement 2025'));
     const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
-    assert.equal(r.method, 'rules');
+    assert.equal(called, true); // GPT רץ, לא מדולג
+    assert.equal(r.method, 'gpt');
     assert.equal(r.issuer.name, 'IBKR');
-    assert.equal(r.confidence, 'high');
+  });
+
+  test('GPT נכשל → נופל לכללים עם דגל aiError', async () => {
+    const aiFn = async () => null;
+    const file = write('fail.pdf', makePdf('Interactive Brokers Annual Activity Statement 2025'));
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.method, 'rules');
+    assert.equal(r.aiError, true);
   });
 
   test('ביטחון נמוך + GPT זמין → נופל ל-GPT וממפה לגוף קיים', async () => {

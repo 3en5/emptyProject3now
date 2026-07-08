@@ -49,7 +49,11 @@ function dropFile(name = 'test.pdf') {
 }
 
 describe('IntakeBox — תיבת הקליטה החכמה', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // סטטוס GPT — נטען ב-useEffect של IntakeBox
+    vi.mocked(axios.get).mockResolvedValue({ data: { configured: true, model: 'gpt-4o' } });
+  });
 
   test('קובץ שזוהה ותויק מציג את ההחלטה ואת השדות לפיקוח', async () => {
     vi.mocked(axios.post).mockResolvedValue({ data: INTAKE_MATCHED });

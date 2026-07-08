@@ -3,31 +3,34 @@
 
 // "טביעות אצבע" של גופים מנפיקים — canonical → מונחים שמזהים אותם בטקסט.
 // type = סוג הגוף המשוער (bank/insurance/investment) — משמש להצעת סוג ביצירת גוף חדש.
+// חשוב: המונחים חייבים להיות ספציפיים — מילה כללית ("מגדל"=בניין, "לאומי"=לאומי,
+// "מיטב"=הטוב ביותר) תגרום להתאמות-שווא בביטחון גבוה. לכן מעדיפים צירופים ("בנק מזרחי").
 const ISSUERS = [
-  { canonical: 'בנק מזרחי', type: 'bank', terms: ['מזרחי', 'mizrahi'] },
+  { canonical: 'בנק מזרחי', type: 'bank', terms: ['בנק מזרחי', 'מזרחי טפחות', 'mizrahi'] },
   { canonical: 'וואן זירו', type: 'bank', terms: ['וואן זירו', 'one zero', 'onezero', 'wan zero'] },
-  { canonical: 'IBKR', type: 'investment', terms: ['ibkr', 'interactive brokers', 'אינטראקטיב'] },
-  { canonical: 'IBI', type: 'investment', terms: ['ibi', 'אי.בי.אי', 'אי בי אי'] },
+  { canonical: 'IBKR', type: 'investment', terms: ['ibkr', 'interactive brokers', 'אינטראקטיב ברוקרס'] },
+  { canonical: 'IBI', type: 'investment', terms: ['אי.בי.אי', 'אי בי אי', 'ibi בית השקעות', 'בית השקעות ibi'] },
   { canonical: 'BTB', type: 'investment', terms: ['btb'] },
-  { canonical: 'מיטב', type: 'investment', terms: ['מיטב'] },
+  { canonical: 'מיטב', type: 'investment', terms: ['מיטב דש', 'מיטב בית השקעות', 'מיטב גמל', 'meitav'] },
   { canonical: 'אלטשולר שחם', type: 'investment', terms: ['אלטשולר'] },
   { canonical: 'הראל', type: 'insurance', terms: ['הראל'] },
-  { canonical: 'כלל', type: 'insurance', terms: ['כלל ביטוח', 'כלל חברה'] },
-  { canonical: 'מגדל', type: 'insurance', terms: ['מגדל'] },
+  { canonical: 'כלל', type: 'insurance', terms: ['כלל ביטוח', 'כלל חברה', 'כלל פנסיה'] },
+  { canonical: 'מגדל', type: 'insurance', terms: ['מגדל ביטוח', 'מגדל מקפת', 'מגדל חברה', 'migdal'] },
   { canonical: 'הפניקס', type: 'insurance', terms: ['הפניקס'] },
-  { canonical: 'בנק הפועלים', type: 'bank', terms: ['הפועלים', 'poalim'] },
-  { canonical: 'בנק לאומי', type: 'bank', terms: ['לאומי', 'leumi'] },
-  { canonical: 'בנק דיסקונט', type: 'bank', terms: ['דיסקונט', 'discont'] },
+  { canonical: 'בנק הפועלים', type: 'bank', terms: ['בנק הפועלים', 'poalim'] },
+  { canonical: 'בנק לאומי', type: 'bank', terms: ['בנק לאומי', 'leumi'] },
+  { canonical: 'בנק דיסקונט', type: 'bank', terms: ['בנק דיסקונט', 'דיסקונט', 'discount'] },
 ];
 
-// סוגי מסמכים — canonical → מונחים
+// סוגי מסמכים — canonical → מונחים.
+// מספרי טפסים חייבים להופיע עם המילה "טופס" — מספר עירום ("867") מופיע בכל סכום.
 const DOC_TYPES = [
-  { canonical: 'טופס 867', terms: ['867'] },
-  { canonical: 'טופס 106', terms: ['106'] },
+  { canonical: 'טופס 867', terms: ['טופס 867', 'form 867', '867 ריכוז'] },
+  { canonical: 'טופס 106', terms: ['טופס 106', 'form 106'] },
   { canonical: 'אישור יתרת משכנתא', terms: ['יתרת משכנתא', 'יתרת הלוואה'] },
   { canonical: 'אישור הפקדות', terms: ['אישור הפקדות', 'הפקדות לקופת', 'הפקדות שנתי'] },
   { canonical: 'Annual Activity Statement', terms: ['activity statement', 'annual statement'] },
-  { canonical: 'דוח מע"מ', terms: ['מע"מ', 'מעמ', 'מס ערך מוסף'] },
+  { canonical: 'דוח מע"מ', terms: ['מע"מ', 'מס ערך מוסף'] },
   { canonical: 'דוח שנתי', terms: ['דוח שנתי'] },
   { canonical: 'אישור ניכוי מס במקור', terms: ['ניכוי מס במקור'] },
 ];

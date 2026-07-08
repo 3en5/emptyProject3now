@@ -23,3 +23,12 @@ describe('GET /api/system/version', () => {
     assert.ok(typeof res.body.current.branch === 'string' && res.body.current.branch.length > 0);
   });
 });
+
+describe('GET /api/system/ai-status', () => {
+  test('מדווח אם הזיהוי החכם (GPT) מוגדר', async () => {
+    const res = await request(app).get('/api/system/ai-status');
+    assert.equal(res.status, 200);
+    assert.equal(typeof res.body.configured, 'boolean'); // תלוי אם OPENAI_API_KEY מוגדר בסביבה
+    assert.ok(res.body.model); // תמיד יש מודל ברירת מחדל
+  });
+});
