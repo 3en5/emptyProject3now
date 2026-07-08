@@ -1,6 +1,6 @@
 /**
  * טסטים למנוע ההבנה ההיברידי (understand.js).
- * לא נוגע ברשת — פונקציית Claude מוזרקת (opts.claudeFn / opts.available).
+ * לא נוגע ברשת — פונקציית ה-AI מוזרקת (opts.aiFn / opts.available).
  */
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -48,23 +48,23 @@ const ENTITIES = [
 ];
 
 describe('understandDocument — היברידי', () => {
-  test('ביטחון גבוה מהכללים → method=rules, Claude לא נקרא', async () => {
-    const claudeFn = () => { throw new Error('לא אמור להיקרא'); };
+  test('ביטחון גבוה מהכללים → method=rules, GPT לא נקרא', async () => {
+    const aiFn = () => { throw new Error('לא אמור להיקרא'); };
     const file = write('ibkr.pdf', makePdf('Interactive Brokers Annual Activity Statement 2025'));
-    const r = await understandDocument(file, ENTITIES, { claudeFn, available: true });
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
     assert.equal(r.method, 'rules');
     assert.equal(r.issuer.name, 'IBKR');
     assert.equal(r.confidence, 'high');
   });
 
-  test('ביטחון נמוך + Claude זמין → נופל ל-Claude וממפה לגוף קיים', async () => {
-    const claudeFn = async () => ({
+  test('ביטחון נמוך + GPT זמין → נופל ל-GPT וממפה לגוף קיים', async () => {
+    const aiFn = async () => ({
       issuerName: 'הראל', docType: 'פוליסת ביטוח חיים', entityType: 'insurance',
       year: 2025, renewalDate: '2027-12-31', confidence: 'high',
     });
     const file = write('scan.pdf', makePdf('unrecognized scanned content xyz'));
-    const r = await understandDocument(file, ENTITIES, { claudeFn, available: true });
-    assert.equal(r.method, 'claude');
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.method, 'gpt');
     assert.equal(r.issuer.name, 'הראל');
     assert.equal(r.issuer.entityId, 2); // הותאם ל"הראל ביטוח"
     assert.equal(r.issuer.suggestedType, 'insurance');
@@ -73,28 +73,28 @@ describe('understandDocument — היברידי', () => {
     assert.equal(r.renewalDate, '2027-12-31');
   });
 
-  test('ביטחון נמוך + אין Claude → נשאר עם הכללים (method=rules)', async () => {
+  test('ביטחון נמוך + אין GPT → נשאר עם הכללים (method=rules)', async () => {
     const file = write('scan2.pdf', makePdf('unrecognized scanned content xyz'));
     const r = await understandDocument(file, ENTITIES, { available: false });
     assert.equal(r.method, 'rules');
     assert.equal(r.confidence, 'low');
   });
 
-  test('ביטחון נמוך + Claude מחזיר null (שגיאה/אין מפתח) → נשאר עם הכללים', async () => {
-    const claudeFn = async () => null;
+  test('ביטחון נמוך + GPT מחזיר null (שגיאה/אין מפתח) → נשאר עם הכללים', async () => {
+    const aiFn = async () => null;
     const file = write('scan3.pdf', makePdf('unrecognized scanned content xyz'));
-    const r = await understandDocument(file, ENTITIES, { claudeFn, available: true });
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
     assert.equal(r.method, 'rules');
   });
 
-  test('Claude מזהה גוף שלא קיים במערכת → entityId null, שם+סוג נשמרים', async () => {
-    const claudeFn = async () => ({
+  test('GPT מזהה גוף שלא קיים במערכת → entityId null, שם+סוג נשמרים', async () => {
+    const aiFn = async () => ({
       issuerName: 'AIG', docType: 'אישור מס', entityType: 'insurance',
       year: 2025, renewalDate: '', confidence: 'medium',
     });
     const file = write('aig.pdf', makePdf('unrecognized scanned content xyz'));
-    const r = await understandDocument(file, ENTITIES, { claudeFn, available: true });
-    assert.equal(r.method, 'claude');
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.method, 'gpt');
     assert.equal(r.issuer.name, 'AIG');
     assert.equal(r.issuer.entityId, null);
     assert.equal(r.issuer.suggestedType, 'insurance');

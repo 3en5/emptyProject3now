@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { runQuery, getOne, getAll } from '../db/helper.js';
 import { upload, UPLOAD_DIR } from '../upload.js';
 import { understandDocument } from '../understand.js';
-import { claudeAvailable } from '../claude.js';
+import { gptAvailable } from '../gpt.js';
 import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
 import { logActivity } from '../activity.js';
 
@@ -142,7 +142,7 @@ router.post('/intake', (req, res) => {
       }
 
       const entitiesList = getAll('SELECT id, name FROM financial_entities');
-      // מנוע היברידי: כללים מקומיים, ונפילה ל-Claude (ראייה) לסרוקים/עברית/פורמט לא מוכר
+      // מנוע היברידי: כללים מקומיים, ונפילה ל-GPT (ראייה) לסרוקים/עברית/פורמט לא מוכר
       const suggestions = await understandDocument(filePath, entitiesList);
 
       // מועמדים: סלוטים ממתינים ללא קובץ של הגוף שזוהה
@@ -206,9 +206,9 @@ router.post('/intake', (req, res) => {
         action: decision.action,
         suggestions,
         note: suggestions.confidence === 'low'
-          ? (claudeAvailable()
+          ? (gptAvailable()
               ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
-              : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (Claude) הגדירו ANTHROPIC_API_KEY')
+              : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (GPT) הגדירו OPENAI_API_KEY')
           : null,
       });
     } catch (e) {
@@ -252,7 +252,7 @@ router.post('/:id/upload', (req, res) => {
   });
 });
 
-// Analyze the attached file — hybrid understanding (rules + Claude fallback)
+// Analyze the attached file — hybrid understanding (rules + GPT fallback)
 router.post('/:id/analyze', async (req, res) => {
   try {
     const doc = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
@@ -267,9 +267,9 @@ router.post('/:id/analyze', async (req, res) => {
       suggestions,
       method: suggestions.method,
       note: suggestions.confidence === 'low'
-        ? (claudeAvailable()
+        ? (gptAvailable()
             ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
-            : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (Claude) הגדירו ANTHROPIC_API_KEY')
+            : 'לא זוהה בוודאות — ייתכן שהקובץ סרוק. להפעלת זיהוי חכם (GPT) הגדירו OPENAI_API_KEY')
         : null,
     });
   } catch (err) {

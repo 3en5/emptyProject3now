@@ -1,15 +1,14 @@
-// הבנת מסמך באמצעות Claude (ראייה + טקסט) — קורא PDF/תמונה ומחזיר שדות מובנים.
+// הבנת מסמך באמצעות GPT (ראייה) — קורא PDF/תמונה ומחזיר שדות מובנים.
 // שכבת ה"נפילה" של המנוע ההיברידי: מופעלת רק כשהכללים המקומיים לא בטוחים,
-// ורק אם מוגדר ANTHROPIC_API_KEY. בלי מפתח / בשגיאה — מחזירה null (המערכת ממשיכה עם הכללים).
+// ורק אם מוגדר OPENAI_API_KEY. בלי מפתח / בשגיאה — מחזירה null (המערכת ממשיכה עם הכללים).
 import fs from 'fs';
 import path from 'path';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-// מודל וברירות — ניתנים לעקיפה דרך env. ברירת המחדל: Opus 4.8 במאמץ נמוך (חסכוני, מדויק לחילוץ).
-const MODEL = process.env.FINANCE_CLAUDE_MODEL || 'claude-opus-4-8';
-const EFFORT = process.env.FINANCE_CLAUDE_EFFORT || 'low';
+// המודל ניתן לעקיפה דרך env. ברירת מחדל: gpt-4o (ראייה + structured outputs + PDF).
+const MODEL = process.env.FINANCE_GPT_MODEL || 'gpt-4o';
 
-// סכימת הפלט המובנה — כל השדות חובה; ריק/0 כשלא ידוע (בלי nullable, לתאימות structured outputs).
+// סכימת הפלט המובנה — strict דורש שכל השדות חובה ו-additionalProperties:false.
 const SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -34,25 +33,25 @@ const MEDIA_TYPES = {
 
 let client = null;
 function getClient() {
-  if (!process.env.ANTHROPIC_API_KEY) return null; // אין מפתח → לא מפעילים את Claude
-  if (!client) client = new Anthropic();
+  if (!process.env.OPENAI_API_KEY) return null; // אין מפתח → לא מפעילים את GPT
+  if (!client) client = new OpenAI();
   return client;
 }
 
-export function claudeAvailable() {
-  return !!process.env.ANTHROPIC_API_KEY;
+export function gptAvailable() {
+  return !!process.env.OPENAI_API_KEY;
 }
 
-// בונה את בלוק ה-content לפי סוג הקובץ (מסמך PDF או תמונה).
-function buildFileBlock(filePath) {
+// בונה חלק content לפי סוג הקובץ: PDF כקובץ מצורף, תמונה כ-data URL.
+function buildFilePart(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const mediaType = MEDIA_TYPES[ext];
   if (!mediaType) return null;
   const data = fs.readFileSync(filePath).toString('base64');
   if (mediaType === 'application/pdf') {
-    return { type: 'document', source: { type: 'base64', media_type: mediaType, data } };
+    return { type: 'file', file: { filename: 'document.pdf', file_data: `data:application/pdf;base64,${data}` } };
   }
-  return { type: 'image', source: { type: 'base64', media_type: mediaType, data } };
+  return { type: 'image_url', image_url: { url: `data:${mediaType};base64,${data}` } };
 }
 
 const PROMPT = `אתה עוזר לזהות מסמכים פיננסיים ישראליים. קרא את המסמך המצורף (ייתכן שהוא סרוק או בעברית) והחזר את השדות המובנים בלבד.
@@ -65,28 +64,30 @@ const PROMPT = `אתה עוזר לזהות מסמכים פיננסיים ישר�
 אם משהו לא ברור — החזר '' (או 0 לשנה). אל תמציא.`;
 
 /**
- * understandWithClaude(filePath) → אובייקט בשמות הכלליים (issuerName/docType/entityType/year/renewalDate/confidence)
+ * understandWithGPT(filePath) → אובייקט בשמות הכלליים (issuerName/docType/entityType/year/renewalDate/confidence)
  * או null אם אין מפתח / הקובץ לא נתמך / שגיאה.
  */
-export async function understandWithClaude(filePath) {
+export async function understandWithGPT(filePath) {
   const c = getClient();
   if (!c) return null;
-  const fileBlock = buildFileBlock(filePath);
-  if (!fileBlock) return null;
+  const filePart = buildFilePart(filePath);
+  if (!filePart) return null;
 
   try {
-    const res = await c.messages.create({
+    const res = await c.chat.completions.create({
       model: MODEL,
-      max_tokens: 1024,
-      output_config: { format: { type: 'json_schema', schema: SCHEMA }, effort: EFFORT },
-      messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: PROMPT }] }],
+      max_completion_tokens: 1000,
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: 'document_fields', strict: true, schema: SCHEMA },
+      },
+      messages: [{ role: 'user', content: [filePart, { type: 'text', text: PROMPT }] }],
     });
-    if (res.stop_reason === 'refusal') return null;
-    const textBlock = res.content.find((b) => b.type === 'text');
-    if (!textBlock) return null;
-    return JSON.parse(textBlock.text);
+    const msg = res.choices?.[0]?.message;
+    if (!msg || msg.refusal || !msg.content) return null;
+    return JSON.parse(msg.content);
   } catch (err) {
-    if (!process.env.FINANCE_QUIET) console.error('Claude understanding failed:', err.message);
+    if (!process.env.FINANCE_QUIET) console.error('GPT understanding failed:', err.message);
     return null;
   }
 }

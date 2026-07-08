@@ -19,7 +19,7 @@
 | `start-server.bat` | 🪟 Windows — הרצה יומיומית מהירה של השרת (בלי בנייה מחדש) |
 | `install-boot.bat` | 🪟 Windows — רישום עלייה אוטומטית עם כניסה למחשב (Task Scheduler, רקע ללא חלון) |
 | `update.bat` | 🪟 Windows — עדכון לגרסה חדשה: `git pull` + התקנה + בנייה מחדש (הנתונים לא נוגעים; דורש Git clone) |
-| `.env.example` | תבנית להגדרת `ANTHROPIC_API_KEY` (זיהוי חכם). להעתיק ל-`.env` ולמלא. `.env` לא נכנס ל-git |
+| `.env.example` | תבנית להגדרת `OPENAI_API_KEY` (זיהוי חכם). להעתיק ל-`.env` ולמלא. `.env` לא נכנס ל-git |
 | `CLAUDE.md` | כללי העבודה של Claude על הפרויקט (מוסכמות קוד, Git, מבנה) |
 | `INDEX.md` | הקובץ הזה — מפת הקבצים |
 | `PROGRESS.md` | יומן התקדמות: מה הושלם, מה בעבודה, מה מתוכנן, בעיות ידועות |
@@ -52,8 +52,8 @@
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/מועד/ביטחון + `suggestedType`; תומך בעברית הפוכה |
-| `backend/claude.js` | שכבת Claude (ראייה): `understandWithClaude` שולח PDF/תמונה ל-`claude-opus-4-8` ומחזיר שדות מובנים (structured output). פעיל רק עם `ANTHROPIC_API_KEY` |
-| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים קודם, נפילה ל-Claude כשהביטחון נמוך. מחזיר מבנה `classifyText` + `method` |
+| `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs). פעיל רק עם `OPENAI_API_KEY` |
+| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים קודם, נפילה ל-GPT כשהביטחון נמוך. מחזיר מבנה `classifyText` + `method` |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
@@ -128,7 +128,7 @@
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
 | `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/**כפילות**) |
-| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→Claude (פונקציית Claude מוזרקת, בלי רשת) |
+| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
 | `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
@@ -172,16 +172,16 @@
 
 ### קליטה חכמה ותיוק אוטומטי (משאלה #1 — מומש במלואו)
 **העיקרון: מקום אחד לזרוק אליו מסמך. המערכת מבינה, מתייקת, והמשתמש רק מפקח.**
-- **הבנה היברידית** (`backend/understand.js`): כללים מקומיים קודם (`extract.js`+`classify.js`, חינם), ונפילה ל-Claude (`claude.js`, ראייה) לסרוקים/עברית/פורמט לא מוכר — רק כשהביטחון נמוך ורק עם `ANTHROPIC_API_KEY`
+- **הבנה היברידית** (`backend/understand.js`): כללים מקומיים קודם (`extract.js`+`classify.js`, חינם), ונפילה ל-GPT (`gpt.js`, ראייה) לסרוקים/עברית/פורמט לא מוכר — רק כשהביטחון נמוך ורק עם `OPENAI_API_KEY`
 - כללים: ISSUERS/DOC_TYPES fingerprints + חילוץ שנה + **מועד חידוש** (מילות עוגן) + **עברית הפוכה** + `suggestedType`
-- Claude: `structured output` → `{issuerName, docType, entityType, year, renewalDate, confidence}` (מודל `claude-opus-4-8`, ניתן לעקיפה ב-`FINANCE_CLAUDE_MODEL`/`FINANCE_CLAUDE_EFFORT`)
+- GPT: `structured outputs` → `{issuerName, docType, entityType, year, renewalDate, confidence}` (מודל `gpt-4o`, ניתן לעקיפה ב-`FINANCE_GPT_MODEL`)
 - החלטת תיוק: `backend/intake.js` (`decideFiling`) — ניקוד מול סלוטים פנויים → תיוק לקיים / יצירת חדש / "ממתין לשיוך"
 - **זיהוי כפילויות:** `documents.file_hash` (SHA-256) — קובץ שכבר קיים מוחזר כ-`action: 'duplicate'` ולא מועלה שוב
 - Endpoints: `POST /api/documents/intake` (קליטה+תיוק+דדופ) · `POST /:id/analyze` (ניתוח חוזר)
 - Frontend: `components/IntakeBox.jsx` — זריקת קבצים מרובים → שורת תוצאה עם שדות תיקון + "אשר ושמור"; כפתור "🗑️ השלך" (מחיקה+העלאה מחדש); התראת כפול עם קישור לקיים
 - **גוף חדש מהשורה:** גוף שזוהה אך לא קיים → "➕ גוף חדש" עם שם+סוג ממולאים מהזיהוי, ניתן לעריכה; יוצר ומשייך מיד
 - פיקוח: `documents.auto_filed` — תג "🤖 תויק אוטומטית" + סינון "ממתינים לאישור" + מדור בדשבורד
-- ⚙️ הגדרת מפתח: `.env.example` → `.env` עם `ANTHROPIC_API_KEY` (ראה `backend/server.js` טוען `dotenv/config`)
+- ⚙️ הגדרת מפתח: `.env.example` → `.env` עם `OPENAI_API_KEY` (ראה `backend/server.js` טוען `dotenv/config`)
 
 ### משימות שנתיות
 - Backend: `backend/routes/checklists.js`
