@@ -6,37 +6,33 @@ const router = express.Router();
 // Get all entities
 router.get('/', (req, res) => {
   const db = getDatabase();
-  const entities = db.prepare('SELECT * FROM financial_entities ORDER BY created_at DESC').all();
-  res.json(entities);
+  db.all('SELECT * FROM financial_entities ORDER BY created_at DESC', [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows || []);
+  });
 });
 
 // Get single entity with related data
 router.get('/:id', (req, res) => {
   const db = getDatabase();
-  const entity = db.prepare('SELECT * FROM financial_entities WHERE id = ?').get(req.params.id);
+  db.get('SELECT * FROM financial_entities WHERE id = ?', [req.params.id], (err, entity) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!entity) {
+      return res.status(404).json({ error: 'Entity not found' });
+    }
 
-  if (!entity) {
-    return res.status(404).json({ error: 'Entity not found' });
-  }
-
-  const accounts = db.prepare('SELECT * FROM accounts WHERE entity_id = ?').all(entity.id);
-  const documents = db.prepare('SELECT * FROM documents WHERE entity_id = ?').all(entity.id);
-
-  res.json({ ...entity, accounts, documents });
-});
-
-// Get entities by type
-router.get('/type/:type', (req, res) => {
-  const db = getDatabase();
-  const entities = db.prepare('SELECT * FROM financial_entities WHERE type = ? ORDER BY name').all(req.params.type);
-  res.json(entities);
-});
-
-// Get entities by category
-router.get('/category/:category', (req, res) => {
-  const db = getDatabase();
-  const entities = db.prepare('SELECT * FROM financial_entities WHERE category = ? ORDER BY name').all(req.params.category);
-  res.json(entities);
+    db.all('SELECT * FROM accounts WHERE entity_id = ?', [entity.id], (err, accounts) => {
+      if (err) accounts = [];
+      db.all('SELECT * FROM documents WHERE entity_id = ?', [entity.id], (err, documents) => {
+        if (err) documents = [];
+        res.json({ ...entity, accounts: accounts || [], documents: documents || [] });
+      });
+    });
+  });
 });
 
 // Create new entity
@@ -48,20 +44,23 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'name and type are required' });
   }
 
-  try {
-    const stmt = db.prepare(`
-      INSERT INTO financial_entities
-      (name, type, category, website_url, login_url, account_number, contact_info, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes);
-
-    const newEntity = db.prepare('SELECT * FROM financial_entities WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json(newEntity);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  db.run(
+    `INSERT INTO financial_entities
+     (name, type, category, website_url, login_url, account_number, contact_info, status, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      db.get('SELECT * FROM financial_entities WHERE id = ?', [this.lastID], (err, newEntity) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json(newEntity);
+      });
+    }
+  );
 });
 
 // Update entity
@@ -69,39 +68,47 @@ router.put('/:id', (req, res) => {
   const db = getDatabase();
   const { name, type, category, website_url, login_url, account_number, contact_info, status, notes } = req.body;
 
-  try {
-    const stmt = db.prepare(`
-      UPDATE financial_entities
-      SET name = ?, type = ?, category = ?, website_url = ?, login_url = ?, account_number = ?, contact_info = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(name, type, category, website_url, login_url, account_number, contact_info, status, notes, req.params.id);
-
-    const updated = db.prepare('SELECT * FROM financial_entities WHERE id = ?').get(req.params.id);
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  db.run(
+    `UPDATE financial_entities
+     SET name = ?, type = ?, category = ?, website_url = ?, login_url = ?, account_number = ?, contact_info = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [name, type, category, website_url, login_url, account_number, contact_info, status, notes, req.params.id],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      db.get('SELECT * FROM financial_entities WHERE id = ?', [req.params.id], (err, updated) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        res.json(updated);
+      });
+    }
+  );
 });
 
 // Delete entity
 router.delete('/:id', (req, res) => {
   const db = getDatabase();
 
-  try {
-    // Delete related records
-    db.prepare('DELETE FROM documents WHERE entity_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM accounts WHERE entity_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM annual_checklist WHERE entity_id = ?').run(req.params.id);
+  db.run('DELETE FROM documents WHERE entity_id = ?', [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
 
-    // Delete entity
-    db.prepare('DELETE FROM financial_entities WHERE id = ?').run(req.params.id);
+    db.run('DELETE FROM accounts WHERE entity_id = ?', [req.params.id], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
 
-    res.json({ message: 'Entity deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+      db.run('DELETE FROM annual_checklist WHERE entity_id = ?', [req.params.id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        db.run('DELETE FROM financial_entities WHERE id = ?', [req.params.id], (err) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          res.json({ message: 'Entity deleted successfully' });
+        });
+      });
+    });
+  });
 });
 
 export default router;

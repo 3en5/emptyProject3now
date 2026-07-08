@@ -14,9 +14,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialize database
-initDatabase();
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -38,8 +35,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 API available at http://localhost:${PORT}/api`);
-});
+// Initialize database and start server
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`📊 API available at http://localhost:${PORT}/api`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Failed to initialize database:', err);
+    process.exit(1);
+  });
