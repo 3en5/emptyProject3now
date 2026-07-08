@@ -27,13 +27,34 @@ const SUGGESTION_WITH_SUMMARY = {
   note: null,
 };
 
-// מדמה החלפת קובץ על כרטיס (הדרך הממוקדת) — הניתוח רץ אוטומטית אחריה
+// מדמה החלפת קובץ על כרטיס (הדרך הממוקדת) — הכרטיס מקופל כברירת מחדל, פותחים אותו קודם
 async function replaceFileOnCard(container, onUploadMock) {
+  fireEvent.click(container.querySelector('.doc-header-toggle'));
   const input = container.querySelector('.document-card input[type="file"]');
   const file = new File([new Uint8Array([1, 2, 3])], 'doc.pdf', { type: 'application/pdf' });
   fireEvent.change(input, { target: { files: [file] } });
   await waitFor(() => expect(onUploadMock).toHaveBeenCalled());
 }
+
+describe('DocumentPage — כרטיסים מתקפלים', () => {
+  test('מקופל כברירת מחדל — פרטים ופעולות מוסתרים, השם והסטטוס נשארים גלויים', () => {
+    const { container } = render(<DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    expect(container.querySelector('.document-card')).toHaveClass('collapsed');
+    expect(container.querySelector('.doc-header-toggle')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('זמני')).toBeInTheDocument(); // שם המסמך גלוי מקופל
+    expect(screen.queryByText(/קובץ:/)).not.toBeInTheDocument(); // פרטים מוסתרים
+  });
+
+  test('לחיצה על הכותרת פותחת את הכרטיס, ולחיצה נוספת מקפלת אותו בחזרה', () => {
+    const { container } = render(<DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    const toggle = container.querySelector('.doc-header-toggle');
+    fireEvent.click(toggle);
+    expect(container.querySelector('.document-card')).toHaveClass('expanded');
+    expect(screen.getByText(/קובץ:/)).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(container.querySelector('.document-card')).toHaveClass('collapsed');
+  });
+});
 
 describe('DocumentPage — זיהוי אוטומטי בכרטיס (החלפת קובץ)', () => {
   beforeEach(() => {
@@ -46,7 +67,9 @@ describe('DocumentPage — זיהוי אוטומטי בכרטיס (החלפת ק
       ...documents,
       { id: 6, entity_id: 2, document_name: 'ריק', status: 'pending', entity_name: 'IBKR' },
     ];
-    render(<DocumentPage documents={docs} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    const { container } = render(<DocumentPage documents={docs} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    // הכרטיסים מקופלים כברירת מחדל — פותחים את שניהם
+    container.querySelectorAll('.doc-header-toggle').forEach((btn) => fireEvent.click(btn));
     expect(screen.getByText(/החלף קובץ/)).toBeInTheDocument();
     expect(screen.getByText(/אין קובץ — גררו לכאן או השתמשו בתיבת הקליטה/)).toBeInTheDocument();
     // אין יותר כפתור "נתח" נפרד — הניתוח אוטומטי
@@ -117,22 +140,25 @@ describe('DocumentPage — זיהוי אוטומטי בכרטיס (החלפת ק
     expect(payload.amounts).toEqual(['שווי תיק: $12,340', 'עמלות שנתיות: $45']);
   });
 
-  test('תקציר וסכומים שכבר נשמרו על המסמך מוצגים גם בלי לפתוח ניתוח', () => {
+  test('תקציר וסכומים שכבר נשמרו על המסמך מוצגים אחרי פתיחת הכרטיס', () => {
     const docWithSummary = [{
       ...documents[0],
       doc_date: '2025-04-15',
       summary: 'דוח פעילות שנתי של IBKR לשנת 2025.',
       amounts: ['שווי תיק: $12,340'],
     }];
-    render(<DocumentPage documents={docWithSummary} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    const { container } = render(<DocumentPage documents={docWithSummary} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    fireEvent.click(container.querySelector('.doc-header-toggle'));
     expect(screen.getByText(/דוח פעילות שנתי של IBKR לשנת 2025/)).toBeInTheDocument();
     expect(screen.getByText(/שווי תיק: \$12,340/)).toBeInTheDocument();
   });
 
-  test('מסמך שתויק אוטומטית מציג תג פיקוח, ו"אשר" מנקה את הדגל', async () => {
+  test('מסמך שתויק אוטומטית מציג סימון בכותרת המקופלת, ותג פיקוח מלא אחרי פתיחה — "אשר" מנקה את הדגל', async () => {
     const onUpdate = vi.fn();
     const autoDocs = [{ ...documents[0], auto_filed: 1 }];
-    render(<DocumentPage documents={autoDocs} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={() => {}} />);
+    const { container } = render(<DocumentPage documents={autoDocs} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={() => {}} />);
+    expect(screen.getByTitle(/ממתין לאישור/)).toBeInTheDocument(); // 🤖 גלוי גם מקופל
+    fireEvent.click(container.querySelector('.doc-header-toggle'));
     expect(screen.getByText(/תויק אוטומטית — נכון\?/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /✓ אשר/ }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());

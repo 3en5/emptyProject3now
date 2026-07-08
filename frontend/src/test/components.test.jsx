@@ -127,7 +127,8 @@ describe('EntityList', () => {
 
   test('כפתור מחיקה (אחרי אישור) קורא ל-onDelete עם ה-id', () => {
     const onDelete = vi.fn();
-    render(<EntityList entities={entities} onEdit={() => {}} onDelete={onDelete} />);
+    const { container } = render(<EntityList entities={entities} onEdit={() => {}} onDelete={onDelete} />);
+    fireEvent.click(container.querySelector('.entity-header-toggle')); // הכרטיס מקופל כברירת מחדל
     fireEvent.click(screen.getAllByRole('button', { name: /מחק/ })[0]);
     expect(window.confirm).toHaveBeenCalled();
     expect(onDelete).toHaveBeenCalledWith(1);
@@ -135,7 +136,8 @@ describe('EntityList', () => {
 
   test('כפתור עריכה קורא ל-onEdit עם ה-id', () => {
     const onEdit = vi.fn();
-    render(<EntityList entities={entities} onEdit={onEdit} onDelete={() => {}} />);
+    const { container } = render(<EntityList entities={entities} onEdit={onEdit} onDelete={() => {}} />);
+    fireEvent.click(container.querySelector('.entity-header-toggle'));
     fireEvent.click(screen.getAllByRole('button', { name: /ערוך/ })[0]);
     expect(onEdit).toHaveBeenCalledWith(1);
   });
@@ -148,6 +150,24 @@ describe('EntityList', () => {
     render(<EntityList entities={items} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.getByRole('heading', { name: /🚗 רכב פרטי/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /📜 רישיון כלי יריה/ })).toBeInTheDocument();
+  });
+
+  test('כרטיסים מקופלים כברירת מחדל — פרטים ופעולות מוסתרים עד לחיצה', () => {
+    const { container } = render(<EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+    const card = container.querySelector('.entity-card');
+    expect(card).toHaveClass('collapsed');
+    expect(screen.queryByRole('button', { name: /ערוך/ })).not.toBeInTheDocument();
+    expect(container.querySelector('.entity-header-toggle')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('לחיצה על הכותרת פותחת את הכרטיס, ולחיצה נוספת מקפלת אותו בחזרה', () => {
+    const { container } = render(<EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+    const toggle = container.querySelector('.entity-header-toggle');
+    fireEvent.click(toggle);
+    expect(container.querySelector('.entity-card')).toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(toggle);
+    expect(container.querySelector('.entity-card')).toHaveClass('collapsed');
   });
 });
 

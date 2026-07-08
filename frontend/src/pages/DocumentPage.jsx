@@ -26,6 +26,16 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
   const [editDate, setEditDate] = useState(''); // מועד חידוש שזוהה — ניתן לתיקון בתיבת הזיהוי
   const [formData, setFormData] = useState(EMPTY_DOC);
+  const [expandedIds, setExpandedIds] = useState(new Set()); // כרטיסים מתקפלים — ברירת מחדל: מקופל
+
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleAnalyze = async (doc) => {
     setAnalysis(null);
@@ -33,6 +43,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       const res = await axios.post(`/api/documents/${doc.id}/analyze`);
       setAnalysis({ docId: doc.id, ...res.data });
       setEditDate(res.data.suggestions?.renewalDate || doc.required_by_date || '');
+      setExpandedIds((prev) => new Set(prev).add(doc.id)); // מציגים את תיבת הניתוח — פותחים את הכרטיס
     } catch (err) {
       console.error(err);
     }
@@ -218,21 +229,35 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
           <p className="no-data">אין מסמכים</p>
         ) : (
           <div className="documents-list">
-            {filteredDocs.map(doc => (
+            {filteredDocs.map(doc => {
+              const expanded = expandedIds.has(doc.id) || !!(analysis && analysis.docId === doc.id);
+              return (
               <div
                 key={doc.id}
-                className={`document-card ${dragOverId === doc.id ? 'drag-over' : ''}`}
+                className={`document-card ${expanded ? 'expanded' : 'collapsed'} ${dragOverId === doc.id ? 'drag-over' : ''}`}
                 style={{ borderLeftColor: getStatusColor(doc.status) }}
                 onDragOver={readOnly ? undefined : (e) => { e.preventDefault(); setDragOverId(doc.id); }}
                 onDragLeave={readOnly ? undefined : () => setDragOverId(null)}
                 onDrop={readOnly ? undefined : (e) => handleDrop(doc, e)}
               >
-                <div className="doc-header">
-                  <h3>{doc.document_name}</h3>
-                  <span className="status-badge" style={{ backgroundColor: getStatusColor(doc.status) }}>
-                    {getStatusBadge(doc.status)}
+                <button
+                  type="button"
+                  className="doc-header doc-header-toggle"
+                  onClick={() => toggleExpand(doc.id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="doc-header-title">
+                    <h3>{doc.document_name}</h3>
+                    <span className="status-badge" style={{ backgroundColor: getStatusColor(doc.status) }}>
+                      {getStatusBadge(doc.status)}
+                    </span>
+                    {doc.entity_name && <span className="entity-badge">{doc.entity_name}</span>}
+                    {!!doc.auto_filed && <span className="auto-filed-dot" title="ממתין לאישור — תויק אוטומטית">🤖</span>}
                   </span>
-                </div>
+                  <span className="collapse-chevron">{expanded ? '▲' : '▼'}</span>
+                </button>
+                {expanded && (
+                <>
                 <div className="doc-info">
                   <p><strong>גוף:</strong> {doc.entity_name}</p>
                   {doc.document_type && <p><strong>סוג:</strong> {doc.document_type}</p>}
@@ -361,8 +386,11 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                   </button>
                 </div>
                 </>)}
+                </>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

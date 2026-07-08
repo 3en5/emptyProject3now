@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ReadOnlyContext } from '../ReadOnlyContext';
 import EntityList from '../components/EntityList';
 import AccountsPage from '../pages/AccountsPage';
@@ -12,8 +12,9 @@ function renderWith(readOnly, ui) {
 }
 
 describe('מצב צפייה-בלבד (read-only)', () => {
-  test('EntityList — במצב עריכה מציג כפתורי ערוך/מחק', () => {
-    renderWith(false, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+  test('EntityList — במצב עריכה מציג כפתורי ערוך/מחק (אחרי פתיחת הכרטיס המקופל)', () => {
+    const { container } = renderWith(false, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+    fireEvent.click(container.querySelector('.entity-header-toggle'));
     expect(screen.getByRole('button', { name: /ערוך/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /מחק/ })).toBeInTheDocument();
   });

@@ -31,6 +31,8 @@ test('ניווט לעמוד הגופים ומציג גופים לפי סוג', a
 test('שינוי סטטוס מסמך ל"הוגש" נשמר', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  // הכרטיסים מקופלים כברירת מחדל — פותחים את הראשון כדי לחשוף את בורר הסטטוס
+  await page.locator('.doc-header-toggle').first().click();
   const firstSelect = page.locator('.status-select').first();
   await firstSelect.selectOption('submitted');
   // אימות מול ה-API שהשינוי נשמר
@@ -64,6 +66,7 @@ test('עריכת מסמך קיים משנה את שמו', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
   const firstCard = page.locator('.document-card').first();
+  await firstCard.locator('.doc-header-toggle').click(); // פתיחת הכרטיס המקופל
   await firstCard.getByRole('button', { name: /ערוך/ }).click();
   await page.locator('form input[type="text"]').first().fill('שם מעודכן בבדיקה');
   await page.getByRole('button', { name: /עדכן מסמך/ }).click();
