@@ -1,7 +1,7 @@
 import { init } from './db/init.js';
 import { createApp } from './app.js';
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3018;
 const app = createApp();
 
 // Initialize database and start server

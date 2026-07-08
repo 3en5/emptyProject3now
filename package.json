@@ -13,6 +13,12 @@
     "seed": "node backend/db/seed.js",
     "starter": "node backend/db/starter.js",
     "reset": "node backend/db/reset.js",
+    "service:start": "npm run build && pm2 start ecosystem.config.cjs && pm2 save",
+    "service:stop": "pm2 stop finance-docs",
+    "service:restart": "npm run build && pm2 restart finance-docs",
+    "service:status": "pm2 status finance-docs",
+    "service:logs": "pm2 logs finance-docs",
+    "service:boot": "pm2 startup",
     "test": "node --test 'backend/test/**/*.test.js'",
     "test:api": "node --test 'backend/test/**/*.test.js'",
     "test:components": "cd frontend && npm test",
@@ -38,6 +44,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "nodemon": "^3.0.2",
+    "pm2": "^7.0.3",
     "supertest": "^7.2.2"
   }
 }

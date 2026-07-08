@@ -18,8 +18,8 @@ export default defineConfig({
   webServer: [
     {
       // זריעה ל-DB נקי ואז הפעלת ה-backend על אותו DB
-      command: `FINANCE_DB_PATH=${E2E_DB} node backend/db/seed.js && FINANCE_DB_PATH=${E2E_DB} FINANCE_QUIET=1 PORT=3001 node backend/server.js`,
-      port: 3001,
+      command: `FINANCE_DB_PATH=${E2E_DB} node backend/db/seed.js && FINANCE_DB_PATH=${E2E_DB} FINANCE_QUIET=1 PORT=3018 node backend/server.js`,
+      port: 3018,
       reuseExistingServer: false,
       timeout: 30000,
     },

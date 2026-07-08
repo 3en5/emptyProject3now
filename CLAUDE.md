@@ -62,7 +62,7 @@ backend/
 │   ├── init.js         # אתחול DB + שמירה לקובץ
 │   └── helper.js       # runQuery / getOne / getAll
 ├── routes/             # entities, accounts, documents, checklists
-└── server.js           # Express server (port 3001)
+└── server.js           # Express server (port 3018)
 
 frontend/
 ├── src/
@@ -77,7 +77,7 @@ frontend/
 ## 🚀 הרצה
 
 ```bash
-npm start                    # Backend על port 3001
+npm start                    # Backend על port 3018
 cd frontend && npm run dev   # Frontend על port 5173
 ```
 

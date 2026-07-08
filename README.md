@@ -40,13 +40,13 @@ Web app לניהול ומעקב אחר **כל** הנכסים, ההתחייבוי
 
 ### מצב שימוש (פקודה אחת, כתובת אחת) — מומלץ
 ```bash
-npm run app          # בונה את ה-frontend ומריץ הכל על port 3001
+npm run app          # בונה את ה-frontend ומריץ הכל על port 3018
 ```
-פותחים: **`http://localhost:3001`** — זהו. השרת מגיש גם את האפליקציה וגם את ה-API.
+פותחים: **`http://localhost:3018`** — זהו. השרת מגיש גם את האפליקציה וגם את ה-API.
 
 ### מצב פיתוח (שני טרמינלים, hot-reload)
 ```bash
-npm start                     # Backend על 3001
+npm start                     # Backend על 3018
 cd frontend && npm run dev    # Frontend על 5173
 ```
 
@@ -57,6 +57,25 @@ npm run seed      # נתוני דמו מלאים (יתרות, היסטוריה) 
 npm run reset     # מחיקת כל הנתונים — התחלה ריקה לגמרי
 ```
 > ה-DB נשמר מקומית ב-`backend/db/finance.db` (לא נכנס ל-git). כל הנתונים נשארים בין הפעלות.
+
+### הרצה כשירות (רקע, מתחיל אוטומטית ב-boot) 🔧
+המערכת מוגדרת לרוץ כשירות רקע דרך **pm2** — עולה אוטומטית, מתאוששת מקריסה, ומתחילה מחדש בהדלקת המחשב.
+
+```bash
+npm run service:start    # בונה, מפעיל כשירות, ושומר את המצב (רץ על port 3018)
+npm run service:boot     # פעם אחת: הגדרת התחלה אוטומטית ב-boot (מריץ פקודה שצריך להעתיק)
+npm run service:status   # מצב השירות
+npm run service:logs     # צפייה בלוגים
+npm run service:restart  # בנייה מחדש + הפעלה מחדש (אחרי עדכון קוד)
+npm run service:stop     # עצירה
+```
+
+**הקמה חד-פעמית:**
+1. `npm run service:start` — מפעיל את השירות.
+2. `npm run service:boot` — מדפיס פקודת `sudo` (Linux/macOS); מריצים אותה פעם אחת כדי שהשירות יעלה בכל הדלקה.
+3. זהו — המערכת תמיד זמינה ב-`http://localhost:3018`.
+
+> **Windows:** pm2 עובד גם ב-Windows; להתחלה-ב-boot השתמש ב-`pm2-startup` (`npm i -g pm2-windows-startup && pm2-startup install`).
 
 ---
 

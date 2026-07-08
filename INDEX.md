@@ -14,6 +14,7 @@
 |------|-------|
 | `package.json` | הגדרות ה-backend: תלויות (express, sql.js, cors), סקריפטים (`start`, `dev`, `seed`, `setup`) |
 | `README.md` | תיעוד כללי למשתמש: מה המערכת, איך מתקינים ומריצים, רשימת API endpoints |
+| `ecosystem.config.cjs` | הגדרת שירות pm2 (`finance-docs`, port 3018, autorestart). ראה `npm run service:*` |
 | `CLAUDE.md` | כללי העבודה של Claude על הפרויקט (מוסכמות קוד, Git, מבנה) |
 | `INDEX.md` | הקובץ הזה — מפת הקבצים |
 | `PROGRESS.md` | יומן התקדמות: מה הושלם, מה בעבודה, מה מתוכנן, בעיות ידועות |
@@ -60,7 +61,7 @@
 |------|-------|
 | `frontend/index.html` | דף ה-HTML הראשי, `dir="rtl"`, טוען את `main.jsx` |
 | `frontend/package.json` | תלויות ה-frontend: react, react-dom, axios, vite |
-| `frontend/vite.config.js` | הגדרות Vite: port 5173, proxy מ-`/api` ל-`localhost:3001`. **חייב להיות ב-`frontend/`** (Vite רץ משם) |
+| `frontend/vite.config.js` | הגדרות Vite: port 5173, proxy מ-`/api` ל-`localhost:3018`. **חייב להיות ב-`frontend/`** (Vite רץ משם) |
 | `frontend/src/main.jsx` | נקודת הכניסה של React — מרנדר את `App` ל-DOM |
 | `frontend/src/App.jsx` | הרכיב הראשי: ניהול state גלובלי, כל קריאות ה-API, ניתוב בין עמודים, ספק `ReadOnlyContext` |
 | `frontend/src/ReadOnlyContext.js` | Context למצב צפייה-בלבד + hook `useReadOnly()` — מסתיר כפתורי עריכה |
