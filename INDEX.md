@@ -40,6 +40,7 @@
 | `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס + העלאת/הורדת קובץ (`/:id/upload`, `/:id/file`) | `/api/documents` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
+| `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -86,6 +87,7 @@
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
+| `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
 
@@ -145,6 +147,11 @@
 ### חשבונות פרטניים
 - Backend: `backend/routes/accounts.js`
 - Frontend: `pages/AccountsPage.jsx` (מחובר ב-`App.jsx`, כפתור ב-`Navigation.jsx`)
+
+### דוחות / סיכום כספי
+- Backend: `backend/routes/summary.js` (`/api/summary` — נכסים=חשבונות שאינם 'loan', התחייבויות=חשבונות 'loan')
+- Frontend: `pages/ReportsPage.jsx` (שולף בעצמו); עיצוב `.networth-*` ב-`styles/dashboard.css`
+- ⚠️ מטבעות לא מעורבבים — סיכום נפרד לכל מטבע
 
 ### עמוד הבית / דאשבורד
 - `components/Dashboard.jsx` — כל הלוגיקה של הסטטיסטיקות והתצוגה

@@ -45,6 +45,14 @@ export default function Navigation({ currentPage, onPageChange }) {
             ✅ משימות שנתיות
           </button>
         </li>
+        <li>
+          <button
+            className={`nav-button ${currentPage === 'reports' ? 'active' : ''}`}
+            onClick={() => onPageChange('reports')}
+          >
+            📊 דוחות
+          </button>
+        </li>
       </ul>
     </nav>
   );

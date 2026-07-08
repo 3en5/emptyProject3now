@@ -81,6 +81,15 @@ test('העלאת קובץ PDF למסמך ואז קישור צפייה', async ({
   await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
 });
 
+test('עמוד הדוחות מציג שווי נקי לפי מטבע', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📊 דוחות/ }).click();
+  await expect(page.getByRole('heading', { name: /שווי נקי לפי מטבע/ })).toBeVisible();
+  // הזריעה כוללת חשבונות ב-ILS וב-USD
+  await expect(page.locator('.networth-card').first()).toBeVisible();
+  await expect(page.locator('.networth-row.net').first()).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

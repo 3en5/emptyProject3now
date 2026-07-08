@@ -7,6 +7,7 @@ import EntitiesPage from './pages/EntitiesPage';
 import ChecklistPage from './pages/ChecklistPage';
 import DocumentPage from './pages/DocumentPage';
 import AccountsPage from './pages/AccountsPage';
+import ReportsPage from './pages/ReportsPage';
 
 const API_URL = '/api';
 
@@ -245,6 +246,8 @@ export default function App() {
             onDelete={handleDeleteAccount}
           />
         )}
+
+        {currentPage === 'reports' && <ReportsPage />}
       </main>
     </div>
   );

@@ -243,6 +243,46 @@ describe('document file upload', () => {
   });
 });
 
+describe('summary', () => {
+  test('מחשב נכסים/התחייבויות/שווי-נקי לפי מטבע', async () => {
+    // בנק (נכס) עם 1000 ILS
+    const bank = await request(app).post('/api/entities').send({ name: 'בנק', type: 'bank' });
+    await request(app).post('/api/accounts').send({ entity_id: bank.body.id, account_name: 'עו״ש', balance: 1000, currency: 'ILS' });
+    // משכנתא (התחייבות) עם 800 ILS
+    const loan = await request(app).post('/api/entities').send({ name: 'משכנתא', type: 'loan' });
+    await request(app).post('/api/accounts').send({ entity_id: loan.body.id, account_name: 'יתרה', balance: 800, currency: 'ILS' });
+    // השקעה בדולר (נכס) 500 USD
+    const inv = await request(app).post('/api/entities').send({ name: 'IBKR', type: 'investment' });
+    await request(app).post('/api/accounts').send({ entity_id: inv.body.id, account_name: 'תיק', balance: 500, currency: 'USD' });
+
+    const res = await request(app).get('/api/summary');
+    assert.equal(res.status, 200);
+
+    const ils = res.body.currencies.find((c) => c.currency === 'ILS');
+    assert.equal(ils.assets, 1000);
+    assert.equal(ils.liabilities, 800);
+    assert.equal(ils.net, 200);
+
+    const usd = res.body.currencies.find((c) => c.currency === 'USD');
+    assert.equal(usd.assets, 500);
+    assert.equal(usd.net, 500);
+  });
+
+  test('מחזיר ספירות כלליות', async () => {
+    await request(app).post('/api/entities').send({ name: 'גוף', type: 'bank' });
+    const res = await request(app).get('/api/summary');
+    assert.ok(res.body.counts.entities >= 1);
+    assert.equal(typeof res.body.counts.documents, 'number');
+  });
+
+  test('התפלגות נכסים לא כוללת התחייבויות', async () => {
+    const loan = await request(app).post('/api/entities').send({ name: 'משכנתא', type: 'loan' });
+    await request(app).post('/api/accounts').send({ entity_id: loan.body.id, account_name: 'יתרה', balance: 500, currency: 'ILS' });
+    const res = await request(app).get('/api/summary');
+    assert.ok(!res.body.assetsByType.some((r) => r.type === 'loan'));
+  });
+});
+
 describe('checklists', () => {
   test('POST יוצר משימה, GET /current מחזיר אותה', async () => {
     const year = new Date().getFullYear();

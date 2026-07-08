@@ -4,6 +4,7 @@ import entitiesRouter from './routes/entities.js';
 import accountsRouter from './routes/accounts.js';
 import documentsRouter from './routes/documents.js';
 import checklistRouter from './routes/checklists.js';
+import summaryRouter from './routes/summary.js';
 
 // יוצר את אפליקציית Express (בלי להאזין לפורט ובלי אתחול DB).
 // מיוצא בנפרד כדי שטסטים יוכלו לייבא אותו ולהריץ בקשות ישירות.
@@ -17,6 +18,7 @@ export function createApp() {
   app.use('/api/accounts', accountsRouter);
   app.use('/api/documents', documentsRouter);
   app.use('/api/checklists', checklistRouter);
+  app.use('/api/summary', summaryRouter);
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });

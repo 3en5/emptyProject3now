@@ -62,6 +62,17 @@ const CHECKLIST = [
   { task: 'איסוף טופס 106', cat: 'דוח שכיר', assignee: 'spouse', due: '2026-03-31' },
 ];
 
+// חשבונות עם יתרות לדוגמה (להדגמת דוח הסיכום). נכסים ומטבעות מעורבים.
+const ACCOUNTS = [
+  { entity: 'בנק מזרחי — משפחתי', name: 'עו״ש משפחתי', type: 'עובר ושב', balance: 45000, currency: 'ILS' },
+  { entity: 'וואן זירו — השקעות', name: 'תיק השקעות', type: 'ניירות ערך', balance: 120000, currency: 'ILS' },
+  { entity: 'IBKR', name: 'תיק ניירות ערך זר', type: 'ברוקראז׳', balance: 320000, currency: 'USD' },
+  { entity: 'מיטב ד"ש', name: 'קרן השתלמות', type: 'חיסכון', balance: 85000, currency: 'ILS' },
+  { entity: 'קרן פנסיה', name: 'צבירה פנסיונית', type: 'פנסיה', balance: 410000, currency: 'ILS' },
+  { entity: 'משכנתא — דירת מגורים', name: 'יתרת משכנתא', type: 'הלוואה', balance: 780000, currency: 'ILS' },
+  { entity: 'משכנתא — דירה להשקעה', name: 'יתרת משכנתא', type: 'הלוואה', balance: 620000, currency: 'ILS' },
+];
+
 async function seed() {
   await init();
 
@@ -109,6 +120,17 @@ async function seed() {
     );
   }
   console.log(`   → ${CHECKLIST.length} משימות`);
+
+  console.log('💳 מכניס חשבונות (יתרות לדוגמה)...');
+  for (const a of ACCOUNTS) {
+    const entityId = idByName[a.entity];
+    if (!entityId) continue;
+    runQuery(
+      'INSERT INTO accounts (entity_id, account_name, account_type, balance, currency) VALUES (?, ?, ?, ?, ?)',
+      [entityId, a.name, a.type || null, a.balance, a.currency]
+    );
+  }
+  console.log(`   → ${ACCOUNTS.length} חשבונות`);
 
   console.log('\n🌱 הזריעה הושלמה בהצלחה!');
   process.exit(0);
