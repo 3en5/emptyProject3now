@@ -127,13 +127,13 @@ router.put('/:id', (req, res) => {
 
   const result = runQuery(
     `UPDATE documents
-     SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?,
-         entity_id = COALESCE(?, entity_id), auto_filed = COALESCE(?, auto_filed),
+     SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, date_filed = ?, notes = ?,
+         status = COALESCE(?, status), entity_id = COALESCE(?, entity_id), auto_filed = COALESCE(?, auto_filed),
          doc_date = COALESCE(?, doc_date), summary = COALESCE(?, summary), amounts = COALESCE(?, amounts),
          owner = COALESCE(?, owner),
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, doc_date, summary, amountsJson, owner, parseInt(req.params.id)]
+    [document_name, document_type, required_frequency, year, required_by_date, date_filed, notes, status, entity_id, auto_filed, doc_date, summary, amountsJson, owner, parseInt(req.params.id)]
   );
 
   if (!result.success) {
@@ -206,7 +206,7 @@ router.post('/intake', (req, res) => {
            SET file_path = ?, file_hash = ?, year = COALESCE(year, ?), required_by_date = COALESCE(required_by_date, ?),
                doc_date = COALESCE(doc_date, ?), summary = COALESCE(summary, ?), amounts = COALESCE(amounts, ?),
                owner = COALESCE(owner, ?),
-               auto_filed = 1, updated_at = CURRENT_TIMESTAMP
+               status = 'submitted', auto_filed = 1, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           [req.file.filename, hash, suggestions.year, suggestions.renewalDate, suggestions.docDate, suggestions.summary, amountsJson, suggestions.ownerGuess, docId]
         );
@@ -231,8 +231,8 @@ router.post('/intake', (req, res) => {
           || 'מסמך שנקלט';
         runQuery(
           `INSERT INTO documents
-           (entity_id, document_name, document_type, year, required_by_date, file_path, file_hash, auto_filed, notes, doc_date, summary, amounts, owner)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+           (entity_id, document_name, document_type, year, required_by_date, status, file_path, file_hash, auto_filed, notes, doc_date, summary, amounts, owner)
+           VALUES (?, ?, ?, ?, ?, 'submitted', ?, ?, 1, ?, ?, ?, ?, ?)`,
           [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, hash, 'נקלט אוטומטית דרך תיבת הקליטה', suggestions.docDate, suggestions.summary, amountsJson, suggestions.ownerGuess]
         );
         const created = getOne('SELECT id FROM documents ORDER BY id DESC LIMIT 1');
@@ -290,7 +290,10 @@ router.post('/:id/upload', (req, res) => {
     }
 
     const hash = sha256(path.join(UPLOAD_DIR, req.file.filename));
-    const result = runQuery('UPDATE documents SET file_path = ?, file_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.file.filename, hash, id]);
+    const result = runQuery(
+      `UPDATE documents SET file_path = ?, file_hash = ?, status = 'submitted', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [req.file.filename, hash, id]
+    );
     if (!result.success) {
       return res.status(500).json({ error: result.error });
     }

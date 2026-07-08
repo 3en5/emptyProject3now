@@ -114,6 +114,7 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
     assert.equal(res.body.document.id, slot.id); // תויק לסלוט הקיים — לא נוצר כפול
     assert.ok(res.body.document.file_path); // הקובץ הוצמד
     assert.equal(res.body.document.auto_filed, 1); // ממתין לפיקוח
+    assert.equal(res.body.document.status, 'submitted'); // קובץ הוצמד בפועל → כבר לא "ממתין"
     assert.equal(res.body.suggestions.issuer.name, 'IBKR');
   });
 
@@ -130,6 +131,7 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
     assert.equal(res.body.document.entity_id, ent.id);
     assert.equal(res.body.document.document_name, 'טופס 867');
     assert.equal(res.body.document.auto_filed, 1);
+    assert.equal(res.body.document.status, 'submitted'); // מסמך חדש נוצר עם קובץ מצורף — לא "ממתין"
     assert.equal(res.body.document.required_by_date, '2027-12-31'); // מועד החידוש שזוהה נשמר
   });
 
@@ -142,6 +144,7 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
     assert.equal(res.body.action, 'unmatched');
     assert.match(res.body.document.entity_name, /ממתין לשיוך/);
     assert.equal(res.body.document.auto_filed, 1);
+    assert.equal(res.body.document.status, 'submitted'); // קובץ קיים גם כשהגוף לא זוהה
   });
 
   test('אישור פיקוח: PUT עם auto_filed=0 מנקה את הדגל, ו-PUT בלי הדגל לא נוגע בו', async () => {
@@ -210,6 +213,24 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
       .attach('file', makePdf('Interactive Brokers Annual Activity Statement 2025'), 'ibkr2.pdf');
     assert.equal(res.status, 201);
     assert.deepEqual(res.body.document.amounts, []); // parsed מ-JSON, לא string גולמי
+  });
+});
+
+describe('סטטוס אוטומטי כשמצטרף קובץ בפועל', () => {
+  test('PUT בלי status (כמו "אשר ושמור" בתיבת הקליטה) לא מאפס את הסטטוס ל-NULL', async () => {
+    await request(app).post('/api/entities').send({ name: 'מגדל ביטוח', type: 'insurance' });
+    const ent = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    const intake = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('מגדל ביטוח דוח שנתי'), 'migdal.pdf');
+    assert.equal(intake.body.document.status, 'submitted');
+
+    // "אשר ושמור" ב-IntakeBox שולח PUT בלי שדה status בכלל
+    const confirm = await request(app)
+      .put(`/api/documents/${intake.body.document.id}`)
+      .send({ document_name: 'דוח שנתי מגדל', entity_id: intake.body.document.entity_id, auto_filed: 0 });
+    assert.equal(confirm.status, 200);
+    assert.equal(confirm.body.status, 'submitted'); // לא נדרס ל-NULL
   });
 });
 

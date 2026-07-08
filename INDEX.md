@@ -47,7 +47,7 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file` — קובץ שמצטרף בפועל מסמן `status='submitted'` אוטומטית) | `/api/documents` |
 | `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
@@ -130,7 +130,7 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**/**status='submitted' אוטומטי כשמצטרף קובץ, כולל regression ל-PUT בלי status**) |
 | `backend/test/checklistMatch.test.js` | טסטי יחידה ל-`matchChecklistTask` (טהורה) |
 | `backend/test/ownerMatch.test.js` | טסטי יחידה ל-`matchOwner` (טהורה) — התאמת שם לבן-בית, חלקי שם, בלי הגדרה/התאמה → `null` |
 | `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate/personName+ownerGuess** (פונקציית ה-AI מוזרקת, בלי רשת) |
@@ -189,6 +189,7 @@
 - Frontend: `components/IntakeBox.jsx` — זריקת קבצים מרובים → שורת תוצאה עם שדות תיקון + "אשר ושמור"; כפתור "🗑️ השלך" (מחיקה+העלאה מחדש); התראת כפול עם קישור לקיים
 - **גוף חדש מהשורה:** גוף שזוהה אך לא קיים → "➕ גוף חדש" עם שם+סוג ממולאים מהזיהוי, ניתן לעריכה; יוצר ומשייך מיד
 - פיקוח: `documents.auto_filed` — תג "🤖 תויק אוטומטית" + סינון "ממתינים לאישור" + מדור בדשבורד
+- **סטטוס אוטומטי:** קובץ שהוצמד בפועל (תיוק לסלוט/מסמך חדש דרך `/intake`, או החלפת קובץ ב-`/:id/upload`) מסמן `documents.status = 'submitted'` אוטומטית — "יש קובץ" ו"הוגש" הם אותה עובדה מבחינת המשתמש, לא שני שדות עצמאיים. ראה LESSONS #8 (כולל באג נלווה: `PUT` בלי `COALESCE` על `status` איפס אותו ל-NULL כש-`IntakeBox` לא שלח את השדה)
 - ⚙️ הגדרת מפתח: `.env.example` → `.env` עם `OPENAI_API_KEY` (ראה `backend/server.js` טוען `dotenv/config`)
 
 ### משימות שנתיות

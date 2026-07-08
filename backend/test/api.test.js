@@ -233,6 +233,7 @@ describe('document file upload', () => {
     assert.equal(res.status, 200);
     assert.ok(res.body.file_path);
     assert.match(res.body.file_path, /\.pdf$/);
+    assert.equal(res.body.status, 'submitted'); // קובץ הוצמד בפועל → כבר לא "ממתין"
   });
 
   test('GET /:id/file מחזיר את הקובץ שהועלה', async () => {
