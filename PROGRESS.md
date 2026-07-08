@@ -47,6 +47,7 @@
 | 32 | **יומן שינויים (audit log)** — טבלת `activity_log`, `logActivity` בכל mutation, `/api/activity`, סעיף "שינויים אחרונים" בדוחות; 103 טסטים | `activity.js`, `routes/activity.js`, כל ה-routes, `ReportsPage.jsx`, `schema.sql` | 2026-07-08 |
 | 33 | **עדכון README** — מדריך שימוש מלא ועדכני | `README.md` | 2026-07-08 |
 | 34 | **דוח חודשי** — `/api/report/monthly`, עמוד עם בורר חודש (מסמכים/משימות שמועדם החודש + שינויים); 109 טסטים | `routes/report.js`, `pages/MonthlyPage.jsx`, `Navigation.jsx` | 2026-07-08 |
+| 35 | **כלל Definition of Done** — עדכון תיעוד/טסטים חלק מחובת סיום כל שלב קוד | `CLAUDE.md` | 2026-07-08 |
 
 ---
 
