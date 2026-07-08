@@ -159,4 +159,15 @@ describe('understandDocument — היברידי', () => {
     assert.equal(r.summary, undefined);
     assert.equal(r.amounts, undefined);
   });
+
+  test('GPT מזהה קבלה על תרומה → entityType donation מועבר כ-suggestedType', async () => {
+    const aiFn = async () => ({
+      issuerName: 'עמותת דוגמה', docType: 'קבלה על תרומה', entityType: 'donation',
+      year: 2025, renewalDate: '', confidence: 'medium',
+    });
+    const file = write('donation.pdf', makePdf('unrecognized scanned content xyz'));
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.issuer.name, 'עמותת דוגמה');
+    assert.equal(r.issuer.suggestedType, 'donation');
+  });
 });

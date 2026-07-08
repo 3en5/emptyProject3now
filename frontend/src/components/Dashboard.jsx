@@ -30,7 +30,8 @@ export default function Dashboard({ entities, documents, checklist, onNavigate, 
     realty: '🏠 נדלן',
     loan: '💳 הלוואות',
     vehicle: '🚗 רכבים',
-    license: '📜 רישיונות'
+    license: '📜 רישיונות',
+    donation: '🎗️ תרומות'
   };
 
   const entitiesByType = {};

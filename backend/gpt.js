@@ -15,7 +15,7 @@ const SCHEMA = {
   properties: {
     issuerName: { type: 'string', description: "שם הגוף/החברה שהנפיקו את המסמך (למשל 'הראל', 'בנק מזרחי', 'AIG'), או '' אם לא ברור" },
     docType: { type: 'string', description: "סוג המסמך בעברית (למשל 'טופס 867', 'פוליסת ביטוח חיים', 'אישור טסט'), או ''" },
-    entityType: { type: 'string', enum: ['bank', 'insurance', 'investment', 'realty', 'loan', 'vehicle', 'license', 'other', ''], description: 'סוג הגוף הפיננסי' },
+    entityType: { type: 'string', enum: ['bank', 'insurance', 'investment', 'realty', 'loan', 'vehicle', 'license', 'donation', 'other', ''], description: 'סוג הגוף הפיננסי (donation = עמותה/מוסד שקיבל תרומה)' },
     year: { type: 'integer', description: 'שנת המס/הדיווח של המסמך, או 0 אם אין' },
     docDate: { type: 'string', description: "התאריך שמופיע על המסמך עצמו (תאריך הפקה/חתימה), בפורמט YYYY-MM-DD, או '' אם אין" },
     renewalDate: { type: 'string', description: "מועד חידוש/תפוגה/הגשה עתידי (שונה מ-docDate), בפורמט YYYY-MM-DD, או '' אם אין" },

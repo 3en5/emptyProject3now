@@ -8,6 +8,7 @@ const TYPE_LABEL = {
   investment: '📈 השקעות',
   realty: '🏠 נדל"ן',
   loan: '💳 הלוואות',
+  donation: '🎗️ תרומות',
 };
 
 function fmt(amount, currency) {

@@ -51,6 +51,7 @@ export default function EntitiesPage({ entities, onAdd, onUpdate, onDelete }) {
           <option value="loan">💳 הלוואה</option>
           <option value="vehicle">🚗 רכב</option>
           <option value="license">📜 רישיון</option>
+          <option value="donation">🎗️ תרומה</option>
         </select>
       </div>
 

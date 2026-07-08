@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
 import EntityList from '../components/EntityList';
+import EntityForm from '../components/EntityForm';
 import AccountsPage from '../pages/AccountsPage';
 
 describe('Navigation', () => {
@@ -142,14 +143,16 @@ describe('EntityList', () => {
     expect(onEdit).toHaveBeenCalledWith(1);
   });
 
-  test('מרנדר סוגים חדשים (רכב/רישיון) עם אייקון מתאים', () => {
+  test('מרנדר סוגים חדשים (רכב/רישיון/תרומה) עם אייקון מתאים', () => {
     const items = [
       { id: 7, name: 'רכב פרטי', type: 'vehicle', category: 'רכב פרטי' },
       { id: 8, name: 'רישיון כלי יריה', type: 'license', category: 'רישיון כלי יריה' },
+      { id: 9, name: 'עמותת דוגמה', type: 'donation', category: 'תרומה מוכרת (סעיף 46)' },
     ];
     render(<EntityList entities={items} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.getByRole('heading', { name: /🚗 רכב פרטי/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /📜 רישיון כלי יריה/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /🎗️ עמותת דוגמה/ })).toBeInTheDocument();
   });
 
   test('כרטיסים מקופלים כברירת מחדל — פרטים ופעולות מוסתרים עד לחיצה', () => {
@@ -204,5 +207,16 @@ describe('AccountsPage', () => {
     render(<AccountsPage accounts={[]} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /הוסף חשבון/ }));
     expect(screen.getByText(/שם החשבון/)).toBeInTheDocument();
+  });
+});
+
+describe('EntityForm — סוג "תרומה"', () => {
+  test('סוג הגוף כולל "תרומה", ובחירתו חושפת קטגוריות תרומה (סעיף 46 וכו\')', () => {
+    const { container } = render(<EntityForm onSubmit={() => {}} onCancel={() => {}} />);
+    const typeSelect = container.querySelector('select[name="type"]');
+    expect(within(typeSelect).getByText(/תרומה/)).toBeInTheDocument();
+    fireEvent.change(typeSelect, { target: { value: 'donation' } });
+    const categorySelect = container.querySelector('select[name="category"]');
+    expect(within(categorySelect).getByText(/תרומה מוכרת \(סעיף 46\)/)).toBeInTheDocument();
   });
 });

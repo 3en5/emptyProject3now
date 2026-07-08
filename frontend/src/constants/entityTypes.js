@@ -8,4 +8,5 @@ export const ENTITY_TYPES = [
   { value: 'loan', label: '💳 הלוואה' },
   { value: 'vehicle', label: '🚗 רכב' },
   { value: 'license', label: '📜 רישיון' },
+  { value: 'donation', label: '🎗️ תרומה' },
 ];

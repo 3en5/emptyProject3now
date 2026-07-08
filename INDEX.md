@@ -99,7 +99,7 @@
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
 | `frontend/src/components/Dashboard.jsx` | עמוד הבית: תיבת הקליטה, מדור "תויקו אוטומטית — לאישור", סטטיסטיקות, גופים לפי סוג, ממתינים, ועדכון תוכנה |
 | `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity` |
-| `frontend/src/constants/entityTypes.js` | `ENTITY_TYPES` — מקור אמת יחיד לסוגי גופים (משמש `EntityForm` ו-`IntakeBox`) |
+| `frontend/src/constants/entityTypes.js` | `ENTITY_TYPES` — מקור אמת יחיד לסוגי גופים, כולל `donation` 🎗️ (משמש `EntityForm` ו-`IntakeBox`). ⚠️ עדיין יש מפות תווית/אייקון כפולות ב-`EntityList.jsx`, `Dashboard.jsx`, `ReportsPage.jsx`, `EntitiesPage.jsx` — סוג גוף חדש דורש עדכון בכולן |
 | `frontend/src/components/DocumentForm.jsx` | טופס הוספה/עריכה ידנית של מסמך (הדרך המשנית — ליצירת סלוט מתוכנן) |
 | `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
