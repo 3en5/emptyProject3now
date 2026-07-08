@@ -18,6 +18,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   const [editingId, setEditingId] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
   const [analyzingId, setAnalyzingId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
   const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
   const [formData, setFormData] = useState(EMPTY_DOC);
 
@@ -44,18 +45,38 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     setAnalysis(null);
   };
 
-  const handleFileChange = async (doc, e) => {
-    const file = e.target.files?.[0];
+  const ALLOWED_RE = /\.(pdf|jpe?g|png|webp)$/i;
+
+  // העלאה + ניתוח אוטומטי בצעד אחד — "לזרוק קובץ וזה מזהה לבד"
+  const uploadAndAnalyze = async (doc, file) => {
     if (!file) return;
+    if (!ALLOWED_RE.test(file.name)) {
+      alert('סוג קובץ לא נתמך — רק PDF או תמונה');
+      return;
+    }
     setUploadingId(doc.id);
+    setAnalysis(null);
     try {
       await onUpload(doc.id, file);
+      await handleAnalyze(doc); // מזהה לבד מיד אחרי ההעלאה
     } catch (err) {
       console.error(err);
     } finally {
       setUploadingId(null);
-      e.target.value = '';
     }
+  };
+
+  const handleFileChange = async (doc, e) => {
+    const file = e.target.files?.[0];
+    await uploadAndAnalyze(doc, file);
+    e.target.value = '';
+  };
+
+  const handleDrop = (doc, e) => {
+    e.preventDefault();
+    setDragOverId(null);
+    if (uploadingId === doc.id) return;
+    uploadAndAnalyze(doc, e.dataTransfer.files?.[0]);
   };
 
   // עדכון סטטוס מהיר — שולח את המסמך המלא (PUT דורס שדות חסרים)
@@ -234,7 +255,14 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
         ) : (
           <div className="documents-grid">
             {filteredDocs.map(doc => (
-              <div key={doc.id} className="document-card" style={{ borderLeftColor: getStatusColor(doc.status) }}>
+              <div
+                key={doc.id}
+                className={`document-card ${dragOverId === doc.id ? 'drag-over' : ''}`}
+                style={{ borderLeftColor: getStatusColor(doc.status) }}
+                onDragOver={readOnly ? undefined : (e) => { e.preventDefault(); setDragOverId(doc.id); }}
+                onDragLeave={readOnly ? undefined : () => setDragOverId(null)}
+                onDrop={readOnly ? undefined : (e) => handleDrop(doc, e)}
+              >
                 <div className="doc-header">
                   <h3>{doc.document_name}</h3>
                   <span className="status-badge" style={{ backgroundColor: getStatusColor(doc.status) }}>
@@ -273,7 +301,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                 {!readOnly && (<>
                 <div className="doc-upload">
                   <label className="btn btn-small btn-upload">
-                    {uploadingId === doc.id ? '⏳ מעלה…' : (doc.file_path ? '🔄 החלף קובץ' : '📤 העלה קובץ')}
+                    {uploadingId === doc.id ? '⏳ מעלה ומזהה…' : (doc.file_path ? '🔄 החלף קובץ' : '📤 העלה + זהה')}
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,.webp"
@@ -282,6 +310,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       onChange={(e) => handleFileChange(doc, e)}
                     />
                   </label>
+                  <span className="drag-hint">או גררו קובץ לכאן ✨</span>
                   {doc.file_path && (
                     <button
                       className="btn btn-small btn-analyze"

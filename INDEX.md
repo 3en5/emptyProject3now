@@ -154,7 +154,7 @@
 - חילוץ טקסט: `backend/extract.js` (`pdf-parse`)
 - סיווג: `backend/classify.js` (ISSUERS/DOC_TYPES fingerprints + חילוץ שנה) — **טהור, קל להרחיב**
 - Endpoint: `POST /api/documents/:id/analyze` ב-`routes/documents.js`
-- Frontend: כפתור "🔍 נתח" + תיבת הצעות + "החל הצעה" ב-`DocumentPage.jsx`
+- Frontend (`DocumentPage.jsx`): **ניתוח אוטומטי מיד עם ההעלאה** (`uploadAndAnalyze`) + **גרירה-ושחרור** לכרטיס; כפתור "🔍 נתח" לניתוח חוזר; תיבת הצעות + "החל הצעה"
 - ⚠️ מסמך סרוק (תמונה) → אין טקסט → ביטחון נמוך (OCR עתידי)
 
 ### משימות שנתיות

@@ -135,21 +135,21 @@ function makePdf(textStr) {
   return Buffer.from(pdf, 'latin1');
 }
 
-test('זיהוי חכם: העלאת PDF וניתוח מזהה סוג ושנה', async ({ page }) => {
+test('זיהוי אוטומטי: העלאת PDF מריצה ניתוח לבד (בלי לחיצה)', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
   const firstCard = page.locator('.document-card').first();
+  // רק מעלים — הניתוח אמור לרוץ אוטומטית
   await firstCard.locator('input[type="file"]').setInputFiles({
     name: 'report.pdf',
     mimeType: 'application/pdf',
     buffer: makePdf('Interactive Brokers Annual Activity Statement 2025'),
   });
-  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
-  await firstCard.getByRole('button', { name: /נתח/ }).click();
   const box = firstCard.locator('.analysis-box');
-  await expect(box).toBeVisible();
+  await expect(box).toBeVisible(); // הופיע לבד
   await expect(box.getByText(/Annual Activity Statement/)).toBeVisible();
   await expect(box.getByText('2025', { exact: true })).toBeVisible();
+  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
 });
 
 test('רכבים ורישיונות: סינון מציג רכב, ומסמכי חידוש קיימים', async ({ page }) => {

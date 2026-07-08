@@ -20,6 +20,20 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+/* גרירת קובץ מעל כרטיס מסמך */
+.document-card.drag-over {
+  outline: 3px dashed #16a085;
+  outline-offset: -3px;
+  background: #e8f8f5;
+  transform: scale(1.01);
+}
+
+.drag-hint {
+  font-size: 0.8rem;
+  color: #999;
+  align-self: center;
+}
+
 .entity-header {
   display: flex;
   justify-content: space-between;
