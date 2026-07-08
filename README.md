@@ -34,19 +34,29 @@ Web app לניהול ומעקב אחר **כל** הנכסים, ההתחייבוי
 
 ---
 
-## 🚀 התחלה מהירה
+## 🚀 הרצה
 
-**דרישות:** Node.js 18+
+**דרישות:** Node.js 18+ · **התקנה:** `npm run setup`
 
+### מצב שימוש (פקודה אחת, כתובת אחת) — מומלץ
 ```bash
-npm run setup                 # התקנת תלויות (root + frontend)
-npm run seed                  # זריעת נתוני דמו (⚠️ מוחק נתונים קיימים)
-npm start                     # Backend על port 3001
-cd frontend && npm run dev    # Frontend על port 5173 (בטרמינל נפרד)
+npm run app          # בונה את ה-frontend ומריץ הכל על port 3001
+```
+פותחים: **`http://localhost:3001`** — זהו. השרת מגיש גם את האפליקציה וגם את ה-API.
+
+### מצב פיתוח (שני טרמינלים, hot-reload)
+```bash
+npm start                     # Backend על 3001
+cd frontend && npm run dev    # Frontend על 5173
 ```
 
-- אפליקציה: `http://localhost:5173`
-- API: `http://localhost:3001/api`
+### הכנת נתונים
+```bash
+npm run starter   # מבנה המצאי שלך נקי (גופים + סלוטים למסמכים) — מוכן להעלאת קבצים אמיתיים
+npm run seed      # נתוני דמו מלאים (יתרות, היסטוריה) — להתרשמות/בדיקה
+npm run reset     # מחיקת כל הנתונים — התחלה ריקה לגמרי
+```
+> ה-DB נשמר מקומית ב-`backend/db/finance.db` (לא נכנס ל-git). כל הנתונים נשארים בין הפעלות.
 
 ---
 

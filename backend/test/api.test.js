@@ -45,6 +45,26 @@ describe('health', () => {
   });
 });
 
+describe('production static serving', () => {
+  const distIndex = path.join(process.cwd(), 'frontend', 'dist', 'index.html');
+
+  test('נתיב SPA (לא-API) מגיש את האפליקציה אם קיים build, אחרת 404', async () => {
+    const res = await request(app).get('/documents');
+    if (fs.existsSync(distIndex)) {
+      assert.equal(res.status, 200);
+      assert.match(res.text, /<div id="root">/);
+    } else {
+      assert.equal(res.status, 404);
+    }
+  });
+
+  test('נתיב /api לא קיים לא נחטף ע"י ה-SPA fallback (404, לא HTML)', async () => {
+    const res = await request(app).get('/api/does-not-exist');
+    assert.equal(res.status, 404);
+    assert.doesNotMatch(res.text || '', /<div id="root">/);
+  });
+});
+
 describe('entities CRUD', () => {
   test('POST יוצר ישות ומחזיר אותה עם id', async () => {
     const res = await request(app)

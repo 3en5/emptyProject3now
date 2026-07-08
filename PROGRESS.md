@@ -48,6 +48,7 @@
 | 33 | **עדכון README** — מדריך שימוש מלא ועדכני | `README.md` | 2026-07-08 |
 | 34 | **דוח חודשי** — `/api/report/monthly`, עמוד עם בורר חודש (מסמכים/משימות שמועדם החודש + שינויים); 109 טסטים | `routes/report.js`, `pages/MonthlyPage.jsx`, `Navigation.jsx` | 2026-07-08 |
 | 35 | **כלל Definition of Done** — עדכון תיעוד/טסטים חלק מחובת סיום כל שלב קוד | `CLAUDE.md` | 2026-07-08 |
+| 36 | **סיום הקמה לשימוש** — הגשת frontend מהשרת (פקודה+כתובת אחת, `npm run app`), `inventory.js` משותף, `starter`/`reset`; 111 טסטים | `app.js`, `db/inventory.js`, `db/starter.js`, `db/reset.js`, `package.json`, `README.md` | 2026-07-08 |
 
 ---
 

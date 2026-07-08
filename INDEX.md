@@ -29,7 +29,10 @@
 | `backend/db/schema.sql` | הגדרת כל הטבלאות והאינדקסים. **כאן משנים מבנה נתונים** (עמודות, טבלאות) |
 | `backend/db/init.js` | אתחול ה-DB: טעינת/יצירת הקובץ, הרצת הסכימה, שמירה לדיסק (`saveDatabase`) |
 | `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן** |
-| `backend/db/seed.js` | זריעת מצאי אמיתי (21 גופים, מסמכים 2025/2026, משימות, חשבונות, רכב/רישיונות). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
+| `backend/db/inventory.js` | **מצאי אמיתי משותף** (גופים/מסמכים/משימות) + `insertInventory()`. משמש את seed ו-starter (DRY) |
+| `backend/db/seed.js` | זריעת **דמו** מלאה (מצאי + היסטוריית 2025 + יתרות + BTB שהסתיים). `npm run seed`. ⚠️ מוחק נתונים |
+| `backend/db/starter.js` | **התחלה נקייה** לשימוש אמיתי (מצאי + סלוטים, בלי דמו). `npm run starter`. ⚠️ מוחק נתונים |
+| `backend/db/reset.js` | מחיקת ה-DB → התחלה ריקה. `npm run reset` |
 | `backend/activity.js` | יומן שינויים: `logActivity()` (נקרא מכל mutation) + `getRecentActivity()` |
 
 ### Backend — API Routes (`backend/routes/`)
@@ -48,7 +51,7 @@
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
-| `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
+| `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes + **הגשת frontend/dist** (production). מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
 ### Frontend — שורש (`frontend/`)

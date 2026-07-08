@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import entitiesRouter from './routes/entities.js';
 import accountsRouter from './routes/accounts.js';
 import documentsRouter from './routes/documents.js';
@@ -31,6 +34,18 @@ export function createApp() {
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
   });
+
+  // הגשת ה-frontend הבנוי (production) — אם קיים build.
+  // ככה השרת מגיש גם את ה-API וגם את האפליקציה על אותו פורט (כתובת אחת).
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const distDir = path.join(__dirname, '../frontend/dist');
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next(); // API לא נתפס ע"י ה-SPA fallback
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  }
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
