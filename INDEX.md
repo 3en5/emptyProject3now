@@ -41,6 +41,7 @@
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
+| `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -88,6 +89,7 @@
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
+| `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + בורר שנה. שולף `/api/comparison/:year` |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
 
@@ -152,6 +154,12 @@
 - Backend: `backend/routes/summary.js` (`/api/summary` — נכסים=חשבונות שאינם 'loan', התחייבויות=חשבונות 'loan')
 - Frontend: `pages/ReportsPage.jsx` (שולף בעצמו); עיצוב `.networth-*` ב-`styles/dashboard.css`
 - ⚠️ מטבעות לא מעורבבים — סיכום נפרד לכל מטבע
+
+### השוואת שנה-לשנה (מסמכים חסרים)
+- Backend: `backend/routes/comparison.js` (`/api/comparison/:year` — משווה מול `:year-1`)
+- תלוי ב-`documents.year` וב-`financial_entities.active_from/active_until` (נוספו במיגרציה ב-`init.js`)
+- Frontend: `pages/ComparisonPage.jsx`
+- לוגיקה: missing=היה אשתקד+גוף פעיל+חסר השנה · received=בשתי השנים · added=חדש · ended=גוף עם `active_until` קודם
 
 ### עמוד הבית / דאשבורד
 - `components/Dashboard.jsx` — כל הלוגיקה של הסטטיסטיקות והתצוגה

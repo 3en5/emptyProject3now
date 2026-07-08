@@ -53,6 +53,14 @@ export default function Navigation({ currentPage, onPageChange }) {
             📊 דוחות
           </button>
         </li>
+        <li>
+          <button
+            className={`nav-button ${currentPage === 'comparison' ? 'active' : ''}`}
+            onClick={() => onPageChange('comparison')}
+          >
+            🔄 השוואת שנים
+          </button>
+        </li>
       </ul>
     </nav>
   );

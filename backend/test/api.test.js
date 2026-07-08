@@ -243,6 +243,60 @@ describe('document file upload', () => {
   });
 });
 
+describe('comparison (year-over-year)', () => {
+  async function makeEntity(name, type = 'bank', extra = {}) {
+    const e = await request(app).post('/api/entities').send({ name, type, ...extra });
+    return e.body.id;
+  }
+  async function makeDoc(entityId, name, year, status = 'pending') {
+    const d = await request(app).post('/api/documents').send({ entity_id: entityId, document_name: name, year });
+    if (status !== 'pending') {
+      await request(app).put(`/api/documents/${d.body.id}`).send({ document_name: name, year, status });
+    }
+    return d.body.id;
+  }
+
+  test('מסמך שהיה אשתקד ולא השנה → missing', async () => {
+    const e = await makeEntity('בנק');
+    await makeDoc(e, '867', 2025, 'submitted');
+    const res = await request(app).get('/api/comparison/2026');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.summary.missing, 1);
+    assert.equal(res.body.missing[0].document_name, '867');
+  });
+
+  test('מסמך שקיים בשתי השנים → received', async () => {
+    const e = await makeEntity('בנק');
+    await makeDoc(e, '867', 2025, 'submitted');
+    await makeDoc(e, '867', 2026);
+    const res = await request(app).get('/api/comparison/2026');
+    assert.equal(res.body.summary.missing, 0);
+    assert.equal(res.body.summary.received, 1);
+  });
+
+  test('מסמך חדש רק השנה → added', async () => {
+    const e = await makeEntity('בנק');
+    await makeDoc(e, 'חדש', 2026);
+    const res = await request(app).get('/api/comparison/2026');
+    assert.equal(res.body.summary.added, 1);
+    assert.equal(res.body.summary.missing, 0);
+  });
+
+  test('גוף שהסתיים (active_until קודם) → ended, לא נספר כחסר', async () => {
+    const e = await makeEntity('בנק שהסתיים', 'bank', { active_until: '2025-12-31' });
+    await makeDoc(e, '867', 2025, 'submitted');
+    const res = await request(app).get('/api/comparison/2026');
+    assert.equal(res.body.summary.missing, 0); // לא מצופה — הסתיים
+    assert.equal(res.body.summary.ended, 1);
+    assert.equal(res.body.endedEntities[0].name, 'בנק שהסתיים');
+  });
+
+  test('year לא תקין מחזיר 400', async () => {
+    const res = await request(app).get('/api/comparison/abc');
+    assert.equal(res.status, 400);
+  });
+});
+
 describe('summary', () => {
   test('מחשב נכסים/התחייבויות/שווי-נקי לפי מטבע', async () => {
     // בנק (נכס) עם 1000 ILS

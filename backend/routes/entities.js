@@ -26,7 +26,7 @@ router.get('/:id', (req, res) => {
 // Create new entity
 router.post('/', (req, res) => {
   try {
-    const { name, type, category, website_url, login_url, account_number, contact_info, status, notes } = req.body;
+    const { name, type, category, website_url, login_url, account_number, contact_info, status, notes, active_from, active_until } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'name and type are required' });
@@ -34,9 +34,9 @@ router.post('/', (req, res) => {
 
     const result = runQuery(
       `INSERT INTO financial_entities
-       (name, type, category, website_url, login_url, account_number, contact_info, status, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes]
+       (name, type, category, website_url, login_url, account_number, contact_info, status, notes, active_from, active_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes, active_from, active_until]
     );
 
     if (!result.success) {
@@ -54,13 +54,13 @@ router.post('/', (req, res) => {
 
 // Update entity
 router.put('/:id', (req, res) => {
-  const { name, type, category, website_url, login_url, account_number, contact_info, status, notes } = req.body;
+  const { name, type, category, website_url, login_url, account_number, contact_info, status, notes, active_from, active_until } = req.body;
 
   const result = runQuery(
     `UPDATE financial_entities
-     SET name = ?, type = ?, category = ?, website_url = ?, login_url = ?, account_number = ?, contact_info = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+     SET name = ?, type = ?, category = ?, website_url = ?, login_url = ?, account_number = ?, contact_info = ?, status = ?, notes = ?, active_from = ?, active_until = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [name, type, category, website_url, login_url, account_number, contact_info, status, notes, parseInt(req.params.id)]
+    [name, type, category, website_url, login_url, account_number, contact_info, status, notes, active_from, active_until, parseInt(req.params.id)]
   );
 
   if (!result.success) {

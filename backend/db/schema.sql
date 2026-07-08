@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS financial_entities (
   contact_info TEXT,
   status TEXT DEFAULT 'active',
   notes TEXT,
+  active_from DATE,   -- תחילת ההתקשרות (למנוע ההשוואה השנתית)
+  active_until DATE,  -- סוף ההתקשרות (NULL = עדיין פעיל)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -44,6 +46,7 @@ CREATE TABLE IF NOT EXISTS documents (
   document_name TEXT NOT NULL,
   document_type TEXT,
   required_frequency TEXT,
+  year INTEGER,           -- שנת המס/הדיווח שהמסמך שייך אליה
   required_by_date DATE,
   date_filed DATE,
   status TEXT DEFAULT 'pending',

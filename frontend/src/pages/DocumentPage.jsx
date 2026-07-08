@@ -60,6 +60,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       document_type: doc.document_type ?? '',
       required_frequency: doc.required_frequency ?? 'yearly',
       required_by_date: doc.required_by_date ?? '',
+      year: doc.year,
       status: doc.status,
       date_filed: doc.date_filed,
     });

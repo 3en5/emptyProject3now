@@ -39,6 +39,7 @@
 | 24 | **הרחבת טסטים** — accounts API + AccountsPage + E2E (חשבון/עריכה) = 54 טסטים | `backend/test/`, `frontend/src/test/`, `e2e/` | 2026-07-08 |
 | 25 | **העלאת קבצי PDF/תמונה למסמכים** — multer, endpoints upload/file, כפתור+קישור ב-UI; 60 טסטים ירוקים | `backend/upload.js`, `routes/documents.js`, `DocumentPage.jsx`, `App.jsx` | 2026-07-08 |
 | 26 | **דוח סיכום נכסים/התחייבויות** — `/api/summary`, שווי נקי לפי מטבע, התפלגות נכסים; seed עם יתרות; 67 טסטים | `routes/summary.js`, `pages/ReportsPage.jsx`, `seed.js`, `Navigation.jsx` | 2026-07-08 |
+| 27 | **השוואת שנה-לשנה (משאלה #2)** — `documents.year` + `active_from/until` (מיגרציה), `/api/comparison/:year`, עמוד עם missing/received/added/ended; seed עם היסטוריית 2025; 77 טסטים | `routes/comparison.js`, `pages/ComparisonPage.jsx`, `init.js`, `schema.sql`, `seed.js` | 2026-07-08 |
 
 ---
 

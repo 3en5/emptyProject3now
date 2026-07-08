@@ -47,16 +47,22 @@ router.get('/entity/:entity_id', (req, res) => {
 // Create document
 router.post('/', (req, res) => {
   const { entity_id, document_name, document_type, required_frequency, required_by_date, notes } = req.body;
+  let { year } = req.body;
 
   if (!entity_id || !document_name) {
     return res.status(400).json({ error: 'entity_id and document_name are required' });
   }
 
+  // ברירת מחדל ל-year: מתוך תאריך ההגשה, אחרת השנה הנוכחית
+  if (!year) {
+    year = required_by_date ? parseInt(String(required_by_date).slice(0, 4)) : new Date().getFullYear();
+  }
+
   const result = runQuery(
     `INSERT INTO documents
-     (entity_id, document_name, document_type, required_frequency, required_by_date, notes)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [entity_id, document_name, document_type, required_frequency, required_by_date, notes]
+     (entity_id, document_name, document_type, required_frequency, year, required_by_date, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [entity_id, document_name, document_type, required_frequency, year, required_by_date, notes]
   );
 
   if (!result.success) {
@@ -69,13 +75,13 @@ router.post('/', (req, res) => {
 
 // Update document
 router.put('/:id', (req, res) => {
-  const { document_name, document_type, required_frequency, required_by_date, status, date_filed, notes } = req.body;
+  const { document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes } = req.body;
 
   const result = runQuery(
     `UPDATE documents
-     SET document_name = ?, document_type = ?, required_frequency = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+     SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [document_name, document_type, required_frequency, required_by_date, status, date_filed, notes, parseInt(req.params.id)]
+    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, parseInt(req.params.id)]
   );
 
   if (!result.success) {

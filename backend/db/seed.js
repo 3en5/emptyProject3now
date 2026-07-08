@@ -7,6 +7,7 @@ import { init } from './init.js';
 import { runQuery, getAll } from './helper.js';
 
 const YEAR = 2026;
+const PREV_YEAR = 2025;
 
 // גופים פיננסיים — לפי המצאי של המשתמש (בלי מספרי חשבון/סכומים)
 const ENTITIES = [
@@ -17,7 +18,8 @@ const ENTITIES = [
   // השקעות
   { name: 'IBKR', type: 'investment', category: 'ניירות ערך', notes: 'ברוקר זר — לא מנפיק 867 ישראלי' },
   { name: 'IBI השקעות', type: 'investment', category: 'ניירות ערך' },
-  { name: 'BTB', type: 'investment', category: 'קרן השקעות' },
+  // BTB — התקשרות שהסתיימה בסוף 2025 (להדגמת "הסתיים")
+  { name: 'BTB', type: 'investment', category: 'קרן השקעות', active_until: '2025-12-31' },
   { name: 'מיטב ד"ש', type: 'investment', category: 'ניירות ערך' },
   { name: 'קרן השתלמות', type: 'investment', category: 'קרן השתלמות' },
   { name: 'קופת גמל', type: 'investment', category: 'גמל' },
@@ -49,6 +51,22 @@ const EXPECTED_DOCS = {
   'ביטוח מנהלים': [{ name: 'אישור הפקדות (סעיף 45א/47)', freq: 'yearly', due: '2026-09-30' }],
   'משכנתא — דירת מגורים': [{ name: 'אישור יתרת משכנתא', freq: 'yearly', due: '2026-07-10' }],
   'משכנתא — דירה להשקעה': [{ name: 'אישור יתרת משכנתא', freq: 'yearly', due: '2026-08-31' }],
+};
+
+// מסמכי היסטוריה של 2025 (הוגשו) — בסיס להשוואת שנה-לשנה.
+// חלקם חוזרים ב-2026 (received), 'ביטוח חיים' חסר ב-2026 (missing),
+// ו-BTB הסתיים ולכן לא נספר כחסר (ended).
+const PREV_DOCS = {
+  'בנק מזרחי — משפחתי': ['טופס 867'],
+  'וואן זירו — השקעות': ['טופס 867'],
+  'IBKR': ['Annual Activity Statement'],
+  'IBI השקעות': ['טופס 867'],
+  'מיטב ד"ש': ['טופס 867'],
+  'קרן השתלמות': ['אישור הפקדות שנתי'],
+  'קופת גמל': ['דוח שנתי קופת גמל'],
+  'קרן פנסיה': ['אישור הפקדות לפנסיה'],
+  'ביטוח חיים': ['אישור מס שנתי'],
+  'BTB': ['טופס 867'],
 };
 
 // משימות שנתיות (Outbound — לרשויות) — עם מועדי הגשה
@@ -86,8 +104,8 @@ async function seed() {
   console.log('🏦 מכניס גופים פיננסיים...');
   for (const e of ENTITIES) {
     runQuery(
-      'INSERT INTO financial_entities (name, type, category, notes, status) VALUES (?, ?, ?, ?, ?)',
-      [e.name, e.type, e.category, e.notes || null, 'active']
+      'INSERT INTO financial_entities (name, type, category, notes, status, active_from, active_until) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [e.name, e.type, e.category, e.notes || null, e.active_until ? 'inactive' : 'active', e.active_from || null, e.active_until || null]
     );
   }
   // שליפת ה-ids מה-DB לפי שם (אמין יותר מ-lastID אחרי DELETE)
@@ -97,20 +115,35 @@ async function seed() {
   }
   console.log(`   → ${ENTITIES.length} גופים`);
 
-  console.log('📄 מכניס מסמכים מצופים...');
+  console.log('📄 מכניס מסמכי 2026 (מצופים)...');
   let docCount = 0;
   for (const [entityName, docs] of Object.entries(EXPECTED_DOCS)) {
     const entityId = idByName[entityName];
     if (!entityId) continue;
     for (const d of docs) {
       runQuery(
-        'INSERT INTO documents (entity_id, document_name, required_frequency, required_by_date, status) VALUES (?, ?, ?, ?, ?)',
-        [entityId, d.name, d.freq, d.due || null, 'pending']
+        'INSERT INTO documents (entity_id, document_name, required_frequency, year, required_by_date, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [entityId, d.name, d.freq, YEAR, d.due || null, 'pending']
       );
       docCount++;
     }
   }
-  console.log(`   → ${docCount} מסמכים`);
+  console.log(`   → ${docCount} מסמכי ${YEAR}`);
+
+  console.log(`📚 מכניס היסטוריית ${PREV_YEAR} (הוגשו)...`);
+  let prevCount = 0;
+  for (const [entityName, names] of Object.entries(PREV_DOCS)) {
+    const entityId = idByName[entityName];
+    if (!entityId) continue;
+    for (const name of names) {
+      runQuery(
+        'INSERT INTO documents (entity_id, document_name, required_frequency, year, required_by_date, date_filed, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [entityId, name, 'yearly', PREV_YEAR, `${PREV_YEAR}-04-30`, `${PREV_YEAR}-03-15`, 'submitted']
+      );
+      prevCount++;
+    }
+  }
+  console.log(`   → ${prevCount} מסמכי ${PREV_YEAR}`);
 
   console.log('✅ מכניס משימות שנתיות...');
   for (const t of CHECKLIST) {

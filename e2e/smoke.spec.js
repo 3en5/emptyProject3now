@@ -90,6 +90,16 @@ test('עמוד הדוחות מציג שווי נקי לפי מטבע', async ({ 
   await expect(page.locator('.networth-row.net').first()).toBeVisible();
 });
 
+test('השוואת שנים מציגה מסמך חסר וגוף שהסתיים', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /🔄 השוואת שנים/ }).click();
+  await expect(page.getByRole('heading', { name: /השוואת שנה-לשנה/ })).toBeVisible();
+  // מהזריעה: ביטוח חיים חסר ב-2026, ו-BTB הסתיים
+  await expect(page.getByText(/ביטוח חיים/)).toBeVisible();
+  const endedSection = page.locator('.dashboard-section', { hasText: 'התקשרויות שהסתיימו' });
+  await expect(endedSection.getByText('BTB')).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

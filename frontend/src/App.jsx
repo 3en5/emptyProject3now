@@ -8,6 +8,7 @@ import ChecklistPage from './pages/ChecklistPage';
 import DocumentPage from './pages/DocumentPage';
 import AccountsPage from './pages/AccountsPage';
 import ReportsPage from './pages/ReportsPage';
+import ComparisonPage from './pages/ComparisonPage';
 
 const API_URL = '/api';
 
@@ -248,6 +249,8 @@ export default function App() {
         )}
 
         {currentPage === 'reports' && <ReportsPage />}
+
+        {currentPage === 'comparison' && <ComparisonPage />}
       </main>
     </div>
   );

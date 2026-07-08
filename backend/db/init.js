@@ -42,6 +42,11 @@ async function initDatabase() {
       }
     }
 
+    // מיגרציות קלות — הוספת עמודות חדשות ל-DB קיים (ALTER לא נכלל ב-IF NOT EXISTS)
+    ensureColumn('documents', 'year', 'INTEGER');
+    ensureColumn('financial_entities', 'active_from', 'DATE');
+    ensureColumn('financial_entities', 'active_until', 'DATE');
+
     // Insert default user if doesn't exist
     try {
       const users = db.exec('SELECT COUNT(*) as count FROM users');
@@ -63,6 +68,19 @@ async function initDatabase() {
   } catch (error) {
     console.error('Failed to initialize database:', error);
     throw error;
+  }
+}
+
+// מוסיף עמודה לטבלה רק אם היא לא קיימת (מיגרציה בטוחה)
+function ensureColumn(table, column, defn) {
+  try {
+    const info = db.exec(`PRAGMA table_info(${table})`);
+    const names = info && info[0] ? info[0].values.map((v) => v[1]) : [];
+    if (!names.includes(column)) {
+      db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${defn}`);
+    }
+  } catch (e) {
+    console.error(`Migration error (${table}.${column}):`, e.message);
   }
 }
 
