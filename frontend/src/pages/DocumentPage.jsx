@@ -16,7 +16,7 @@ const EMPTY_DOC = {
 // עמוד המסמכים.
 // נקודת הכניסה למסמכים היא תיבת הקליטה (IntakeBox) — זורקים קובץ, המערכת מתייקת לבד.
 // הכרטיסים משמשים לפיקוח וניהול: סטטוס, אישור תיוק אוטומטי, החלפת קובץ, עריכה.
-export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload, onRefresh }) {
+export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload, onRefresh, onAddEntity }) {
   const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -175,7 +175,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     <div className="page">
       <h1>📄 ניהול מסמכים</h1>
 
-      <IntakeBox entities={entities} onRefresh={onRefresh} />
+      <IntakeBox entities={entities} onRefresh={onRefresh} onAddEntity={onAddEntity} />
 
       <div className="page-controls">
         <div className="filter-group">

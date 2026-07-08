@@ -2,7 +2,7 @@ import { getUrgency, urgencyMeta, isAlerting } from '../utils/deadlines';
 import UpdateChecker from './UpdateChecker';
 import IntakeBox from './IntakeBox';
 
-export default function Dashboard({ entities, documents, checklist, onNavigate, onRefresh }) {
+export default function Dashboard({ entities, documents, checklist, onNavigate, onRefresh, onAddEntity }) {
   const autoFiled = documents.filter(d => d.auto_filed);
   const pendingDocs = documents.filter(d => d.status === 'pending').length;
   const completedDocs = documents.filter(d => d.status === 'submitted').length;
@@ -43,7 +43,7 @@ export default function Dashboard({ entities, documents, checklist, onNavigate, 
 
   return (
     <div className="dashboard">
-      <IntakeBox entities={entities} onRefresh={onRefresh} />
+      <IntakeBox entities={entities} onRefresh={onRefresh} onAddEntity={onAddEntity} />
 
       {autoFiled.length > 0 && (
         <div className="dashboard-section alerts-section">

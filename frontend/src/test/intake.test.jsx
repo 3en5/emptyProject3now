@@ -31,6 +31,17 @@ const INTAKE_UNMATCHED = {
   note: 'לא זוהה טקסט — ייתכן שהקובץ סרוק (יידרש OCR בעתיד)',
 };
 
+// גוף שזוהה (הפניקס) אך אינו קיים ברשימת הגופים → נקלט ל"ממתין לשיוך" עם suggestedType
+const INTAKE_KNOWN_ISSUER_NO_ENTITY = {
+  document: {
+    id: 50, entity_id: 1, entity_name: '📥 ממתין לשיוך', document_name: 'policy',
+    year: 2025, required_by_date: null, file_path: 'doc_x_3.pdf', auto_filed: 1, status: 'pending',
+  },
+  action: 'unmatched',
+  suggestions: { issuer: { name: 'הפניקס', entityId: null, suggestedType: 'insurance' }, docType: null, year: 2025, renewalDate: null, confidence: 'medium' },
+  note: null,
+};
+
 function dropFile(name = 'test.pdf') {
   const input = document.querySelector('.intake-box input[type="file"]');
   const file = new File([new Uint8Array([1, 2, 3])], name, { type: 'application/pdf' });
@@ -85,6 +96,47 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     const select = screen.getByDisplayValue(/ממתין לשיוך/);
     fireEvent.change(select, { target: { value: '3' } });
     expect(screen.getByDisplayValue('הראל ביטוח')).toBeInTheDocument();
+  });
+
+  test('גוף שזוהה אך לא קיים → "גוף חדש" ממולא מראש (שם+סוג) וניתן לעריכה, יוצר ומשייך', async () => {
+    const onAddEntity = vi.fn().mockResolvedValue({ id: 99, name: 'הפניקס', type: 'insurance' });
+    vi.mocked(axios.post).mockResolvedValue({ data: INTAKE_KNOWN_ISSUER_NO_ENTITY });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} onAddEntity={onAddEntity} />);
+    dropFile('phoenix.pdf');
+
+    await screen.findByText(/לא זוהה גוף — נא לשייך/);
+    // פתיחת מיני-הטופס
+    fireEvent.click(screen.getByRole('button', { name: /גוף חדש/ }));
+    // השם והסוג מולאו מראש מהזיהוי
+    expect(screen.getByDisplayValue('הפניקס')).toBeInTheDocument();
+    const typeSelect = screen.getByDisplayValue('🛡️ ביטוח');
+    expect(typeSelect).toBeInTheDocument();
+    // עריכה של השם לפני יצירה (הזיהוי לא מדויק)
+    fireEvent.change(screen.getByDisplayValue('הפניקס'), { target: { value: 'הפניקס חברה לביטוח' } });
+    fireEvent.click(screen.getByRole('button', { name: /צור ושייך/ }));
+
+    await waitFor(() => expect(onAddEntity).toHaveBeenCalledWith({ name: 'הפניקס חברה לביטוח', type: 'insurance' }));
+    // אחרי היצירה המיני-טופס נסגר
+    await waitFor(() => expect(screen.queryByRole('button', { name: /צור ושייך/ })).not.toBeInTheDocument());
+  });
+
+  test('גוף חדש זמין גם כשכלום לא זוהה (שם ריק לעריכה)', async () => {
+    const onAddEntity = vi.fn().mockResolvedValue({ id: 77, name: 'חברה ידנית', type: 'bank' });
+    vi.mocked(axios.post).mockResolvedValue({ data: INTAKE_UNMATCHED });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} onAddEntity={onAddEntity} />);
+    dropFile('mystery.pdf');
+
+    await screen.findByText(/לא זוהה גוף/);
+    fireEvent.click(screen.getByRole('button', { name: /גוף חדש/ }));
+    // "צור ושייך" חסום עד שממלאים שם וסוג
+    expect(screen.getByRole('button', { name: /צור ושייך/ })).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText('שם החברה'), { target: { value: 'חברה ידנית' } });
+    // בורר הסוג של המיני-טופס הוא האחרון בשורה
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[selects.length - 1], { target: { value: 'bank' } });
+    await waitFor(() => expect(screen.getByRole('button', { name: /צור ושייך/ })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: /צור ושייך/ }));
+    await waitFor(() => expect(onAddEntity).toHaveBeenCalledWith({ name: 'חברה ידנית', type: 'bank' }));
   });
 
   test('כמה קבצים בבת אחת — כל אחד מקבל שורת תוצאה', async () => {

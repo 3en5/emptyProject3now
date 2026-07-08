@@ -1,10 +1,13 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
 import { useReadOnly } from '../ReadOnlyContext';
+import { ENTITY_TYPES } from '../constants/entityTypes';
 
 // תיבת הקליטה החכמה — נקודת הכניסה האחת למסמכים.
 // זורקים קובץ (או כמה) → המערכת מזהה ומתייקת לבד → מוצג "מה הבנתי ולאן תייקתי"
 // עם שדות לתיקון וכפתור אישור אחד. (עקרון: המשתמש מפקח, לא מסווג.)
+// גוף שזוהה אך אינו קיים במערכת → אפשר ליצור אותו כאן ("גוף חדש") עם שם+סוג
+// ממולאים מראש מהזיהוי וניתנים לעריכה.
 
 const ACTION_META = {
   matched: { icon: '📌', label: 'זוהה ותויק לסלוט קיים' },
@@ -14,7 +17,7 @@ const ACTION_META = {
 
 const CONF_HE = { high: 'גבוה', medium: 'בינוני', low: 'נמוך' };
 
-export default function IntakeBox({ entities, onRefresh }) {
+export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
   const readOnly = useReadOnly();
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,6 +41,7 @@ export default function IntakeBox({ entities, onRefresh }) {
         const form = new FormData();
         form.append('file', file);
         const { data } = await axios.post('/api/documents/intake', form);
+        const issuer = data.suggestions?.issuer;
         setResults((prev) => [...prev, {
           key: `doc-${data.document.id}-${Date.now()}`,
           fileName: file.name,
@@ -45,6 +49,9 @@ export default function IntakeBox({ entities, onRefresh }) {
           note: data.note,
           confidence: data.suggestions?.confidence,
           renewalDetected: !!data.suggestions?.renewalDate,
+          // שם/סוג הגוף שזוהה — להצעת יצירת גוף חדש (גם כשלא נמצא במערכת)
+          detectedName: issuer?.name || '',
+          suggestedType: issuer?.suggestedType || '',
           document: data.document,
           edit: {
             entity_id: data.document.entity_id,
@@ -52,6 +59,7 @@ export default function IntakeBox({ entities, onRefresh }) {
             year: data.document.year || '',
             required_by_date: data.document.required_by_date || '',
           },
+          newEntity: null, // { name, type } כשפותחים מיני-טופס יצירה
           saved: false,
         }]);
       } catch (err) {
@@ -62,8 +70,35 @@ export default function IntakeBox({ entities, onRefresh }) {
     onRefresh?.();
   };
 
+  const patch = (key, changes) => {
+    setResults((prev) => prev.map((r) => (r.key === key ? { ...r, ...changes } : r)));
+  };
+
   const setEdit = (key, field, value) => {
     setResults((prev) => prev.map((r) => (r.key === key ? { ...r, edit: { ...r.edit, [field]: value } } : r)));
+  };
+
+  // פתיחת מיני-טופס "גוף חדש" — ממולא מראש מהזיהוי (שם + סוג), ניתן לעריכה
+  const openNewEntity = (r) => {
+    patch(r.key, { newEntity: { name: r.detectedName || '', type: r.suggestedType || '' } });
+  };
+
+  const setNewEntityField = (key, field, value) => {
+    setResults((prev) => prev.map((r) => (r.key === key ? { ...r, newEntity: { ...r.newEntity, [field]: value } } : r)));
+  };
+
+  // יצירת הגוף החדש ושיוך המסמך אליו מיד
+  const createEntity = async (r) => {
+    const { name, type } = r.newEntity;
+    if (!name.trim() || !type) return;
+    try {
+      const created = await onAddEntity({ name: name.trim(), type });
+      // הגוף החדש נבחר אוטומטית בשורה, והמיני-טופס נסגר
+      patch(r.key, { newEntity: null });
+      setEdit(r.key, 'entity_id', created.id);
+    } catch (err) {
+      patch(r.key, { error: err.response?.data?.error || err.message });
+    }
   };
 
   // אישור/תיקון — כפתור אחד: שומר את השדות (כפי שתוקנו) ומוריד את דגל הפיקוח
@@ -77,10 +112,10 @@ export default function IntakeBox({ entities, onRefresh }) {
         entity_id: r.edit.entity_id ? parseInt(r.edit.entity_id) : null,
         auto_filed: 0,
       });
-      setResults((prev) => prev.map((x) => (x.key === r.key ? { ...x, saved: true, document: data } : x)));
+      patch(r.key, { saved: true, document: data });
       onRefresh?.();
     } catch (err) {
-      setResults((prev) => prev.map((x) => (x.key === r.key ? { ...x, error: err.response?.data?.error || err.message } : x)));
+      patch(r.key, { error: err.response?.data?.error || err.message });
     }
   };
 
@@ -128,11 +163,16 @@ export default function IntakeBox({ entities, onRefresh }) {
                     <div className="intake-fields">
                       <label>
                         גוף
-                        <select value={r.edit.entity_id || ''} onChange={(e) => setEdit(r.key, 'entity_id', e.target.value)}>
-                          {entities.map((en) => (
-                            <option key={en.id} value={en.id}>{en.name}</option>
-                          ))}
-                        </select>
+                        <div className="intake-entity-row">
+                          <select value={r.edit.entity_id || ''} onChange={(e) => setEdit(r.key, 'entity_id', e.target.value)}>
+                            {entities.map((en) => (
+                              <option key={en.id} value={en.id}>{en.name}</option>
+                            ))}
+                          </select>
+                          {!r.newEntity && (
+                            <button type="button" className="btn btn-small btn-secondary" onClick={() => openNewEntity(r)}>➕ גוף חדש</button>
+                          )}
+                        </div>
                       </label>
                       <label>
                         שם המסמך
@@ -147,6 +187,30 @@ export default function IntakeBox({ entities, onRefresh }) {
                         <input type="date" className="analysis-date-input" value={r.edit.required_by_date} onChange={(e) => setEdit(r.key, 'required_by_date', e.target.value)} />
                         {r.renewalDetected && <span className="analysis-detected">✓ זוהה</span>}
                       </label>
+
+                      {r.newEntity && (
+                        <div className="intake-new-entity">
+                          <span className="intake-new-entity-title">➕ גוף חדש {r.detectedName && <em>(זוהה: {r.detectedName})</em>}</span>
+                          <label>
+                            שם הגוף
+                            <input type="text" value={r.newEntity.name} placeholder="שם החברה" onChange={(e) => setNewEntityField(r.key, 'name', e.target.value)} />
+                          </label>
+                          <label>
+                            סוג
+                            <select value={r.newEntity.type} onChange={(e) => setNewEntityField(r.key, 'type', e.target.value)}>
+                              <option value="">בחר סוג</option>
+                              {ENTITY_TYPES.map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="intake-actions">
+                            <button type="button" className="btn btn-small btn-success" disabled={!r.newEntity.name.trim() || !r.newEntity.type} onClick={() => createEntity(r)}>צור ושייך</button>
+                            <button type="button" className="btn btn-small btn-secondary" onClick={() => patch(r.key, { newEntity: null })}>ביטול</button>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="intake-actions">
                         <button className="btn btn-small btn-success" onClick={() => confirmResult(r)}>✅ אשר ושמור</button>
                         <a className="btn btn-small btn-secondary" href={`/api/documents/${r.document.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה</a>

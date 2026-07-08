@@ -119,6 +119,39 @@
   align-items: center;
 }
 
+/* בורר גוף + כפתור "גוף חדש" באותה שורה */
+.intake-entity-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* מיני-טופס יצירת גוף חדש בתוך שורת הקליטה */
+.intake-new-entity {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: end;
+  padding: 0.75rem 1rem;
+  margin-top: 0.25rem;
+  background: #eef7ff;
+  border: 1px dashed #2980b9;
+  border-radius: 8px;
+}
+
+.intake-new-entity-title {
+  flex-basis: 100%;
+  font-weight: 600;
+  color: #2471a3;
+  font-size: 0.9rem;
+}
+
+.intake-new-entity-title em {
+  font-weight: 400;
+  color: #666;
+}
+
 .intake-note,
 .intake-error {
   margin-top: 0.5rem;

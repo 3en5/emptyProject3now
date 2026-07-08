@@ -219,6 +219,7 @@ export default function App() {
             checklist={checklist}
             onNavigate={setCurrentPage}
             onRefresh={() => fetchData({ silent: true })}
+            onAddEntity={handleAddEntity}
           />
         )}
 
@@ -250,6 +251,7 @@ export default function App() {
             onDelete={handleDeleteDocument}
             onUpload={handleUploadDocument}
             onRefresh={() => fetchData({ silent: true })}
+            onAddEntity={handleAddEntity}
           />
         )}
 

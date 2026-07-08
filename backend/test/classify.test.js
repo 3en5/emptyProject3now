@@ -22,7 +22,15 @@ describe('classifyText', () => {
     const r = classifyText('Interactive Brokers - Annual Activity Statement 2025', ENTITIES, { currentYear: 2026 });
     assert.equal(r.issuer.name, 'IBKR');
     assert.equal(r.issuer.entityId, 2);
+    assert.equal(r.issuer.suggestedType, 'investment'); // סוג גוף משוער ליצירת גוף חדש
     assert.equal(r.docType, 'Annual Activity Statement');
+  });
+
+  test('גוף שזוהה אך לא קיים במערכת → suggestedType לפי טביעת האצבע', () => {
+    const r = classifyText('הפניקס חברה לביטוח — פוליסה', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.issuer.name, 'הפניקס');
+    assert.equal(r.issuer.entityId, null); // אין גוף כזה ברשימה
+    assert.equal(r.issuer.suggestedType, 'insurance'); // אבל יודעים שזו חברת ביטוח
   });
 
   test('רק סוג מסמך בלי גוף → confidence medium', () => {

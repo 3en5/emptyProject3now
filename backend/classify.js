@@ -1,22 +1,23 @@
 // מנוע סיווג מסמכים מבוסס-כללים — פונקציה טהורה (קלה לבדיקה).
 // מקבל טקסט (מחולץ מ-PDF) ורשימת גופים, ומחזיר הצעות: גוף מנפיק, סוג מסמך, שנה.
 
-// "טביעות אצבע" של גופים מנפיקים — canonical → מונחים שמזהים אותם בטקסט
+// "טביעות אצבע" של גופים מנפיקים — canonical → מונחים שמזהים אותם בטקסט.
+// type = סוג הגוף המשוער (bank/insurance/investment) — משמש להצעת סוג ביצירת גוף חדש.
 const ISSUERS = [
-  { canonical: 'בנק מזרחי', terms: ['מזרחי', 'mizrahi'] },
-  { canonical: 'וואן זירו', terms: ['וואן זירו', 'one zero', 'onezero', 'wan zero'] },
-  { canonical: 'IBKR', terms: ['ibkr', 'interactive brokers', 'אינטראקטיב'] },
-  { canonical: 'IBI', terms: ['ibi', 'אי.בי.אי', 'אי בי אי'] },
-  { canonical: 'BTB', terms: ['btb'] },
-  { canonical: 'מיטב', terms: ['מיטב'] },
-  { canonical: 'אלטשולר שחם', terms: ['אלטשולר'] },
-  { canonical: 'הראל', terms: ['הראל'] },
-  { canonical: 'כלל', terms: ['כלל ביטוח', 'כלל חברה'] },
-  { canonical: 'מגדל', terms: ['מגדל'] },
-  { canonical: 'הפניקס', terms: ['הפניקס'] },
-  { canonical: 'בנק הפועלים', terms: ['הפועלים', 'poalim'] },
-  { canonical: 'בנק לאומי', terms: ['לאומי', 'leumi'] },
-  { canonical: 'בנק דיסקונט', terms: ['דיסקונט', 'discont'] },
+  { canonical: 'בנק מזרחי', type: 'bank', terms: ['מזרחי', 'mizrahi'] },
+  { canonical: 'וואן זירו', type: 'bank', terms: ['וואן זירו', 'one zero', 'onezero', 'wan zero'] },
+  { canonical: 'IBKR', type: 'investment', terms: ['ibkr', 'interactive brokers', 'אינטראקטיב'] },
+  { canonical: 'IBI', type: 'investment', terms: ['ibi', 'אי.בי.אי', 'אי בי אי'] },
+  { canonical: 'BTB', type: 'investment', terms: ['btb'] },
+  { canonical: 'מיטב', type: 'investment', terms: ['מיטב'] },
+  { canonical: 'אלטשולר שחם', type: 'investment', terms: ['אלטשולר'] },
+  { canonical: 'הראל', type: 'insurance', terms: ['הראל'] },
+  { canonical: 'כלל', type: 'insurance', terms: ['כלל ביטוח', 'כלל חברה'] },
+  { canonical: 'מגדל', type: 'insurance', terms: ['מגדל'] },
+  { canonical: 'הפניקס', type: 'insurance', terms: ['הפניקס'] },
+  { canonical: 'בנק הפועלים', type: 'bank', terms: ['הפועלים', 'poalim'] },
+  { canonical: 'בנק לאומי', type: 'bank', terms: ['לאומי', 'leumi'] },
+  { canonical: 'בנק דיסקונט', type: 'bank', terms: ['דיסקונט', 'discont'] },
 ];
 
 // סוגי מסמכים — canonical → מונחים
@@ -89,7 +90,7 @@ function extractYear(text, currentYear) {
 
 /**
  * classifyText(text, entities, opts?) → {
- *   issuer: { name, entityId } | null,
+ *   issuer: { name, entityId, suggestedType } | null,
  *   docType: string | null,
  *   year: number | null,
  *   renewalDate: 'YYYY-MM-DD' | null,   // מועד חידוש/תוקף שזוהה
@@ -115,7 +116,12 @@ export function classifyText(text, entities = [], opts = {}) {
     const matchedEntity = entities.find((e) =>
       entry.terms.some((t) => (e.name || '').toLowerCase().includes(t.toLowerCase()))
     );
-    issuer = { name: issuerMatch.canonical, entityId: matchedEntity ? matchedEntity.id : null };
+    // suggestedType — סוג הגוף המשוער, להצעת יצירת גוף חדש כשאין התאמה קיימת
+    issuer = {
+      name: issuerMatch.canonical,
+      entityId: matchedEntity ? matchedEntity.id : null,
+      suggestedType: entry.type || null,
+    };
   }
 
   const docType = docTypeMatch ? docTypeMatch.canonical : null;

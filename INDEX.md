@@ -94,7 +94,8 @@
 |------|-------|
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
 | `frontend/src/components/Dashboard.jsx` | עמוד הבית: תיבת הקליטה, מדור "תויקו אוטומטית — לאישור", סטטיסטיקות, גופים לפי סוג, ממתינים, ועדכון תוכנה |
-| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור" |
+| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity` |
+| `frontend/src/constants/entityTypes.js` | `ENTITY_TYPES` — מקור אמת יחיד לסוגי גופים (משמש `EntityForm` ו-`IntakeBox`) |
 | `frontend/src/components/DocumentForm.jsx` | טופס הוספה/עריכה ידנית של מסמך (הדרך המשנית — ליצירת סלוט מתוכנן) |
 | `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
@@ -172,6 +173,7 @@
 - החלטת תיוק: `backend/intake.js` (`decideFiling`) — ניקוד מול סלוטים פנויים → תיוק לקיים / יצירת חדש / "ממתין לשיוך"
 - Endpoints: `POST /api/documents/intake` (קליטה ותיוק) · `POST /:id/analyze` (ניתוח חוזר לכרטיס)
 - Frontend: `components/IntakeBox.jsx` (בדשבורד ובעמוד המסמכים) — זריקת קבצים מרובים → שורת תוצאה לכל קובץ עם שדות תיקון + "אשר ושמור"
+- **גוף חדש מהשורה:** גוף שזוהה אך לא קיים (או לא זוהה כלל) → כפתור "➕ גוף חדש" עם שם+סוג ממולאים מ-`suggestedType` (ב-`classify.js`), ניתן לעריכה; יוצר גוף ומשייך מיד
 - פיקוח: עמודת `documents.auto_filed` — 1 עד שהמשתמש מאשר; תג "🤖 תויק אוטומטית" + סינון "ממתינים לאישור" ב-`DocumentPage.jsx`; מדור התראה בדשבורד
 - גרירה ממוקדת לכרטיס ספציפי ("שים את זה כאן") עדיין נתמכת ב-`DocumentPage.jsx`
 - ⚠️ מסמך סרוק (תמונה) → אין טקסט → נקלט כ"לא מזוהה" לשיוך ידני (OCR עתידי)

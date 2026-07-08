@@ -1,14 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const ENTITY_TYPES = [
-  { value: 'bank', label: '🏦 בנק' },
-  { value: 'insurance', label: '🛡️ ביטוח' },
-  { value: 'investment', label: '📈 השקעה' },
-  { value: 'realty', label: '🏠 נדלן' },
-  { value: 'loan', label: '💳 הלוואה' },
-  { value: 'vehicle', label: '🚗 רכב' },
-  { value: 'license', label: '📜 רישיון' }
-];
+import { ENTITY_TYPES } from '../constants/entityTypes';
 
 const CATEGORIES = {
   bank: ['חשבון עסקי', 'חשבון משפחתי', 'חשבון השקעות'],
