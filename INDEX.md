@@ -39,6 +39,8 @@
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
 | `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס + העלאת/הורדת קובץ (`/:id/upload`, `/:id/file`) | `/api/documents` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
+| `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
+| `backend/classify.js` | מנוע סיווג מסמכים מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/ביטחון |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
@@ -135,6 +137,13 @@
 - Backend: `backend/upload.js` (multer) + endpoints `/:id/upload` ו-`/:id/file` ב-`routes/documents.js`
 - Frontend: כפתור העלאה + קישור צפייה ב-`DocumentPage.jsx`; handler `handleUploadDocument` ב-`App.jsx`
 - אחסון: `backend/uploads/` (ב-`.gitignore`). שם קובץ: `doc_<id>_<timestamp>.<ext>`
+
+### זיהוי חכם של מסמכים (משאלה #1, MVP כללים)
+- חילוץ טקסט: `backend/extract.js` (`pdf-parse`)
+- סיווג: `backend/classify.js` (ISSUERS/DOC_TYPES fingerprints + חילוץ שנה) — **טהור, קל להרחיב**
+- Endpoint: `POST /api/documents/:id/analyze` ב-`routes/documents.js`
+- Frontend: כפתור "🔍 נתח" + תיבת הצעות + "החל הצעה" ב-`DocumentPage.jsx`
+- ⚠️ מסמך סרוק (תמונה) → אין טקסט → ביטחון נמוך (OCR עתידי)
 
 ### משימות שנתיות
 - Backend: `backend/routes/checklists.js`

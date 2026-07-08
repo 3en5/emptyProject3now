@@ -243,6 +243,51 @@ describe('document file upload', () => {
   });
 });
 
+// בונה PDF מינימלי תקין עם טקסט Latin לחילוץ
+function makePdf(textStr) {
+  const content = `BT /F1 18 Tf 50 700 Td (${textStr}) Tj ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach((off) => { pdf += String(off).padStart(10, '0') + ' 00000 n \n'; });
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, 'latin1');
+}
+
+describe('document analyze (smart detection)', () => {
+  test('מנתח PDF ומחזיר הצעות (גוף/סוג/שנה)', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'IBKR', type: 'investment' });
+    const d = await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: 'זמני' });
+    await request(app)
+      .post(`/api/documents/${d.body.id}/upload`)
+      .attach('file', makePdf('Interactive Brokers Annual Activity Statement 2025'), 'report.pdf');
+
+    const res = await request(app).post(`/api/documents/${d.body.id}/analyze`);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.suggestions.issuer.name, 'IBKR');
+    assert.equal(res.body.suggestions.issuer.entityId, e.body.id);
+    assert.equal(res.body.suggestions.docType, 'Annual Activity Statement');
+    assert.equal(res.body.suggestions.year, 2025);
+    assert.equal(res.body.suggestions.confidence, 'high');
+  });
+
+  test('ניתוח מסמך בלי קובץ מחזיר 400', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'גוף', type: 'bank' });
+    const d = await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: 'x' });
+    const res = await request(app).post(`/api/documents/${d.body.id}/analyze`);
+    assert.equal(res.status, 400);
+  });
+});
+
 describe('comparison (year-over-year)', () => {
   async function makeEntity(name, type = 'bank', extra = {}) {
     const e = await request(app).post('/api/entities').send({ name, type, ...extra });

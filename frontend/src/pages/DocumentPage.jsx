@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 
 const EMPTY_DOC = {
@@ -14,7 +15,32 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   const [filterStatus, setFilterStatus] = useState('all');
   const [editingId, setEditingId] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
   const [formData, setFormData] = useState(EMPTY_DOC);
+
+  const handleAnalyze = async (doc) => {
+    setAnalyzingId(doc.id);
+    setAnalysis(null);
+    try {
+      const res = await axios.post(`/api/documents/${doc.id}/analyze`);
+      setAnalysis({ docId: doc.id, ...res.data });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const applySuggestion = (doc, s) => {
+    onUpdate(doc.id, {
+      ...doc,
+      document_name: s.docType || doc.document_name,
+      year: s.year || doc.year,
+      entity_id: s.issuer?.entityId || doc.entity_id,
+    });
+    setAnalysis(null);
+  };
 
   const handleFileChange = async (doc, e) => {
     const file = e.target.files?.[0];
@@ -251,7 +277,36 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       onChange={(e) => handleFileChange(doc, e)}
                     />
                   </label>
+                  {doc.file_path && (
+                    <button
+                      className="btn btn-small btn-analyze"
+                      disabled={analyzingId === doc.id}
+                      onClick={() => handleAnalyze(doc)}
+                    >
+                      {analyzingId === doc.id ? '⏳ מנתח…' : '🔍 נתח'}
+                    </button>
+                  )}
                 </div>
+
+                {analysis && analysis.docId === doc.id && (
+                  <div className="analysis-box">
+                    {analysis.note && <p className="analysis-note">⚠️ {analysis.note}</p>}
+                    <p className="analysis-title">🔍 זוהה (ביטחון: {
+                      { high: 'גבוה', medium: 'בינוני', low: 'נמוך' }[analysis.suggestions.confidence]
+                    })</p>
+                    <ul className="analysis-list">
+                      <li>גוף: <strong>{analysis.suggestions.issuer?.name || '—'}</strong></li>
+                      <li>סוג מסמך: <strong>{analysis.suggestions.docType || '—'}</strong></li>
+                      <li>שנה: <strong>{analysis.suggestions.year || '—'}</strong></li>
+                    </ul>
+                    {analysis.suggestions.confidence !== 'low' && (
+                      <button className="btn btn-small btn-success" onClick={() => applySuggestion(doc, analysis.suggestions)}>
+                        ✅ החל הצעה
+                      </button>
+                    )}
+                    <button className="btn btn-small btn-secondary" onClick={() => setAnalysis(null)}>סגור</button>
+                  </div>
+                )}
                 <div className="doc-actions">
                   <select
                     className="status-select"

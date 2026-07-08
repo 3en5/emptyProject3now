@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { runQuery, getOne, getAll } from '../db/helper.js';
 import { upload, UPLOAD_DIR } from '../upload.js';
+import { extractText } from '../extract.js';
+import { classifyText } from '../classify.js';
 
 const router = express.Router();
 
@@ -123,6 +125,28 @@ router.post('/:id/upload', (req, res) => {
     const updated = getOne('SELECT * FROM documents WHERE id = ?', [id]);
     res.json(updated);
   });
+});
+
+// Analyze the attached file — extract text and classify (issuer/docType/year)
+router.post('/:id/analyze', async (req, res) => {
+  try {
+    const doc = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    if (!doc.file_path) return res.status(400).json({ error: 'אין קובץ מצורף לניתוח' });
+
+    const filePath = path.join(UPLOAD_DIR, path.basename(doc.file_path));
+    const text = await extractText(filePath);
+    const entities = getAll('SELECT id, name FROM financial_entities');
+    const suggestions = classifyText(text, entities);
+
+    res.json({
+      suggestions,
+      extractedChars: text.length,
+      note: text.length === 0 ? 'לא זוהה טקסט — ייתכן שהקובץ סרוק (יידרש OCR בעתיד)' : null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Serve/download the attached file

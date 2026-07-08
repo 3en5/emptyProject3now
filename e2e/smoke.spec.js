@@ -100,6 +100,42 @@ test('השוואת שנים מציגה מסמך חסר וגוף שהסתיים',
   await expect(endedSection.getByText('BTB')).toBeVisible();
 });
 
+function makePdf(textStr) {
+  const content = `BT /F1 18 Tf 50 700 Td (${textStr}) Tj ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach((off) => { pdf += String(off).padStart(10, '0') + ' 00000 n \n'; });
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, 'latin1');
+}
+
+test('זיהוי חכם: העלאת PDF וניתוח מזהה סוג ושנה', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  const firstCard = page.locator('.document-card').first();
+  await firstCard.locator('input[type="file"]').setInputFiles({
+    name: 'report.pdf',
+    mimeType: 'application/pdf',
+    buffer: makePdf('Interactive Brokers Annual Activity Statement 2025'),
+  });
+  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
+  await firstCard.getByRole('button', { name: /נתח/ }).click();
+  const box = firstCard.locator('.analysis-box');
+  await expect(box).toBeVisible();
+  await expect(box.getByText(/Annual Activity Statement/)).toBeVisible();
+  await expect(box.getByText('2025', { exact: true })).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

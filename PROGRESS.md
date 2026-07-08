@@ -40,6 +40,7 @@
 | 25 | **העלאת קבצי PDF/תמונה למסמכים** — multer, endpoints upload/file, כפתור+קישור ב-UI; 60 טסטים ירוקים | `backend/upload.js`, `routes/documents.js`, `DocumentPage.jsx`, `App.jsx` | 2026-07-08 |
 | 26 | **דוח סיכום נכסים/התחייבויות** — `/api/summary`, שווי נקי לפי מטבע, התפלגות נכסים; seed עם יתרות; 67 טסטים | `routes/summary.js`, `pages/ReportsPage.jsx`, `seed.js`, `Navigation.jsx` | 2026-07-08 |
 | 27 | **השוואת שנה-לשנה (משאלה #2)** — `documents.year` + `active_from/until` (מיגרציה), `/api/comparison/:year`, עמוד עם missing/received/added/ended; seed עם היסטוריית 2025; 77 טסטים | `routes/comparison.js`, `pages/ComparisonPage.jsx`, `init.js`, `schema.sql`, `seed.js` | 2026-07-08 |
+| 28 | **זיהוי חכם של מסמכים (משאלה #1, MVP)** — חילוץ טקסט PDF + מנוע סיווג (גוף/סוג/שנה), `/analyze`, כפתור "נתח"+"החל הצעה"; 90 טסטים ירוקים | `classify.js`, `extract.js`, `routes/documents.js`, `DocumentPage.jsx` | 2026-07-08 |
 
 ---
 
@@ -78,7 +79,8 @@
 ### שלב 2 — ניהול מסמכים מתקדם
 - [x] **רמזור/התראה לדוחות שמתקרב מועד הגשתם** — סעיף התראות + תגי דחיפות
 - [x] העלאת קבצים (PDF/תמונות) — multer + כפתור העלאה/צפייה
-- [ ] OCR בסיסי לחילוץ נתונים
+- [x] זיהוי חכם: חילוץ טקסט PDF + סיווג (גוף/סוג/שנה) — משאלה #1 MVP
+- [ ] OCR למסמכים סרוקים (תמונות) — המשך ל#1
 - [ ] קישורים ישירים לאתרי הגופים (יש שדה + תצוגה ב-EntityList; אפשר לשפר)
 
 ### שלב 3 — דוחות וניתוח

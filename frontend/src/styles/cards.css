@@ -108,6 +108,12 @@
   margin-top: 0.75rem;
 }
 
+.doc-upload {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .btn-upload {
   display: inline-block;
   background: #8e44ad;
@@ -117,6 +123,44 @@
 
 .btn-upload:hover {
   background: #7d3c98;
+}
+
+.btn-analyze {
+  background: #16a085;
+  color: white;
+}
+
+.btn-analyze:hover {
+  background: #138d75;
+}
+
+.analysis-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #e8f8f5;
+  border: 1px solid #16a085;
+  border-radius: 6px;
+}
+
+.analysis-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.analysis-note {
+  color: var(--warning);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.analysis-list {
+  list-style: none;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.analysis-list li {
+  padding: 0.2rem 0;
 }
 
 .doc-actions {
