@@ -7,7 +7,7 @@ import EntitiesPage from './pages/EntitiesPage';
 import ChecklistPage from './pages/ChecklistPage';
 import DocumentPage from './pages/DocumentPage';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = '/api';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
