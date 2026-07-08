@@ -45,3 +45,6 @@ lerna-debug.log*
 # OS
 Thumbs.db
 .DS_Store
+
+# Windows boot launcher (נוצר אוטומטית ע"י install-boot.bat)
+_boot-hidden.vbs

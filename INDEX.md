@@ -15,6 +15,9 @@
 | `package.json` | הגדרות ה-backend: תלויות (express, sql.js, cors), סקריפטים (`start`, `dev`, `seed`, `setup`) |
 | `README.md` | תיעוד כללי למשתמש: מה המערכת, איך מתקינים ומריצים, רשימת API endpoints |
 | `ecosystem.config.cjs` | הגדרת שירות pm2 (`finance-docs`, port 3018, autorestart). ראה `npm run service:*` |
+| `run-local.bat` | 🪟 Windows — הרצה מקומית בפקודה/דאבל-קליק אחד: בדיקת Node, התקנה, בנייה, נתונים ראשוניים, הרצת השרת |
+| `start-server.bat` | 🪟 Windows — הרצה יומיומית מהירה של השרת (בלי בנייה מחדש) |
+| `install-boot.bat` | 🪟 Windows — רישום עלייה אוטומטית עם כניסה למחשב (Task Scheduler, רקע ללא חלון) |
 | `CLAUDE.md` | כללי העבודה של Claude על הפרויקט (מוסכמות קוד, Git, מבנה) |
 | `INDEX.md` | הקובץ הזה — מפת הקבצים |
 | `PROGRESS.md` | יומן התקדמות: מה הושלם, מה בעבודה, מה מתוכנן, בעיות ידועות |

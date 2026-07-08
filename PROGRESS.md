@@ -52,6 +52,7 @@
 | 37 | **פורט 3018 + הרצה כשירות** — שינוי הפורט מ-3001 ל-3018 בכל המקומות; שירות pm2 (autorestart + boot), סקריפטי `service:*` | `server.js`, `vite.config.js`, `playwright.config.js`, `ecosystem.config.cjs`, `package.json` | 2026-07-08 |
 | 38 | **זיהוי אוטומטי + drag&drop** — ניתוח רץ לבד מיד עם ההעלאה; גרירת קובץ לכרטיס; 112 טסטים | `DocumentPage.jsx`, `styles/cards.css` | 2026-07-08 |
 | 39 | **זיהוי אוטומטי של מועד חידוש + תיקון נשמר** — חילוץ תאריך תוקף מטקסט המסמך (מילות עוגן: "בתוקף עד", "תוקף עד", "מועד חידוש"...), שדה תאריך נערך בתיבת הזיהוי, "החל ושמור" שומר את המועד (כולל תיקון ידני) ל-`required_by_date`; 116 טסטים | `classify.js`, `DocumentPage.jsx`, `styles/cards.css`, `classify.test.js`, `analyze.test.jsx`, `smoke.spec.js` | 2026-07-08 |
+| 40 | **הרצה מקומית על Windows** — סקריפטי `.bat` להרצה בדאבל-קליק: `run-local.bat` (התקנה+בנייה+נתונים+הרצה), `start-server.bat` (הרצה מהירה), `install-boot.bat` (עלייה אוטומטית עם המחשב דרך Task Scheduler); README+INDEX עודכנו | `run-local.bat`, `start-server.bat`, `install-boot.bat`, `README.md`, `INDEX.md`, `.gitignore` | 2026-07-08 |
 
 ---
 
