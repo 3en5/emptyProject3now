@@ -45,7 +45,7 @@
     grid-template-columns: 1fr;
   }
 
-  .entities-grid, .documents-grid {
+  .entities-grid {
     grid-template-columns: 1fr;
   }
 

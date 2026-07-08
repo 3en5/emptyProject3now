@@ -217,7 +217,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
         {filteredDocs.length === 0 ? (
           <p className="no-data">אין מסמכים</p>
         ) : (
-          <div className="documents-grid">
+          <div className="documents-list">
             {filteredDocs.map(doc => (
               <div
                 key={doc.id}
