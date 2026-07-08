@@ -85,6 +85,30 @@ describe('understandDocument — היברידי', () => {
     assert.equal(r.renewalDate, '2027-12-31');
   });
 
+  // רגרסיה: GPT מחזיר שם חופשי (אנגלית/פורמט שונה) שלא תואם מילולית לשם המדויק ב-DB —
+  // חייב לעבור דרך אותה טביעת-אצבע (ISSUERS) ששימושה בכללים, לא רק substring גולמי.
+  test('GPT מחזיר שם באנגלית ("ONE ZERO Digital Bank LTD") → מותאם לגוף העברי הקיים', async () => {
+    const entities = [{ id: 5, name: 'וואן זירו — השקעות' }];
+    const aiFn = async () => ({
+      issuerName: 'ONE ZERO Digital Bank LTD', docType: 'דוח מקוצר', entityType: 'bank',
+      year: 2024, renewalDate: '', confidence: 'high',
+    });
+    const file = write('onezero.pdf', makePdf('unrecognized scanned content xyz'));
+    const r = await understandDocument(file, entities, { aiFn, available: true });
+    assert.equal(r.issuer.entityId, 5);
+  });
+
+  test('GPT מחזיר שם עם ניסוח שונה ("Mizrahi-Tefahot Bank") → מותאם לגוף הקיים', async () => {
+    const entities = [{ id: 6, name: 'בנק מזרחי — משפחתי' }];
+    const aiFn = async () => ({
+      issuerName: 'Mizrahi-Tefahot Bank', docType: 'דוח שנתי', entityType: 'bank',
+      year: 2024, renewalDate: '', confidence: 'high',
+    });
+    const file = write('mizrahi-en.pdf', makePdf('unrecognized scanned content xyz'));
+    const r = await understandDocument(file, entities, { aiFn, available: true });
+    assert.equal(r.issuer.entityId, 6);
+  });
+
   test('ביטחון נמוך + אין GPT → נשאר עם הכללים (method=rules)', async () => {
     const file = write('scan2.pdf', makePdf('unrecognized scanned content xyz'));
     const r = await understandDocument(file, ENTITIES, { available: false });

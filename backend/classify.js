@@ -5,7 +5,9 @@
 // type = סוג הגוף המשוער (bank/insurance/investment) — משמש להצעת סוג ביצירת גוף חדש.
 // חשוב: המונחים חייבים להיות ספציפיים — מילה כללית ("מגדל"=בניין, "לאומי"=לאומי,
 // "מיטב"=הטוב ביותר) תגרום להתאמות-שווא בביטחון גבוה. לכן מעדיפים צירופים ("בנק מזרחי").
-const ISSUERS = [
+// מיוצא: גם understand.js משתמש בטביעות-האצבע האלה כדי לתרגם שם חופשי
+// שהחזיר GPT (למשל "ONE ZERO Digital Bank LTD") לגוף הקיים במערכת ("וואן זירו — השקעות").
+export const ISSUERS = [
   { canonical: 'בנק מזרחי', type: 'bank', terms: ['בנק מזרחי', 'מזרחי טפחות', 'mizrahi'] },
   { canonical: 'וואן זירו', type: 'bank', terms: ['וואן זירו', 'one zero', 'onezero', 'wan zero'] },
   { canonical: 'IBKR', type: 'investment', terms: ['ibkr', 'interactive brokers', 'אינטראקטיב ברוקרס'] },

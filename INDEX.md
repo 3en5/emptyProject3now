@@ -53,7 +53,7 @@
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/מועד/ביטחון + `suggestedType`; תומך בעברית הפוכה |
 | `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך. פעיל רק עם `OPENAI_API_KEY` |
-| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate` |
+| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate`. `matchEntity` מתאם שם-issuer חופשי מ-GPT לגוף קיים דרך טביעות-האצבע של `classify.js` (לא substring גולמי — ראה LESSONS #7) |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
