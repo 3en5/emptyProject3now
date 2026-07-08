@@ -25,25 +25,31 @@ router.get('/:id', (req, res) => {
 
 // Create new entity
 router.post('/', (req, res) => {
-  const { name, type, category, website_url, login_url, account_number, contact_info, status, notes } = req.body;
+  try {
+    const { name, type, category, website_url, login_url, account_number, contact_info, status, notes } = req.body;
 
-  if (!name || !type) {
-    return res.status(400).json({ error: 'name and type are required' });
+    if (!name || !type) {
+      return res.status(400).json({ error: 'name and type are required' });
+    }
+
+    const result = runQuery(
+      `INSERT INTO financial_entities
+       (name, type, category, website_url, login_url, account_number, contact_info, status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes]
+    );
+
+    if (!result.success) {
+      console.error('Insert failed:', result.error);
+      return res.status(500).json({ error: result.error });
+    }
+
+    const newEntity = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    res.status(201).json(newEntity || { message: 'Created but could not retrieve' });
+  } catch (error) {
+    console.error('Route error:', error);
+    res.status(500).json({ error: error.message });
   }
-
-  const result = runQuery(
-    `INSERT INTO financial_entities
-     (name, type, category, website_url, login_url, account_number, contact_info, status, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, type, category, website_url, login_url, account_number, contact_info, status || 'active', notes]
-  );
-
-  if (!result.success) {
-    return res.status(500).json({ error: result.error });
-  }
-
-  const newEntity = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
-  res.status(201).json(newEntity);
 });
 
 // Update entity
