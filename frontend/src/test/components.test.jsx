@@ -1,5 +1,5 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
 import EntityList from '../components/EntityList';
@@ -53,6 +53,52 @@ describe('Dashboard', () => {
     const onNavigate = vi.fn();
     render(<Dashboard entities={entities} documents={documents} checklist={checklist} onNavigate={onNavigate} />);
     fireEvent.click(screen.getAllByText('הצג הכל')[0]);
+    expect(onNavigate).toHaveBeenCalledWith('documents');
+  });
+});
+
+describe('Dashboard — התראות מועדים', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 8)); // 2026-07-08
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const entities = [{ id: 1, name: 'גוף', type: 'bank' }];
+
+  test('מציג התראה למסמך באיחור ולמסמך מתקרב, לא למסמך רחוק/הוגש', () => {
+    const documents = [
+      { id: 1, document_name: 'מסמך באיחור', status: 'pending', required_by_date: '2026-04-30', entity_name: 'גוף' },
+      { id: 2, document_name: 'מסמך מתקרב', status: 'pending', required_by_date: '2026-07-10', entity_name: 'גוף' },
+      { id: 3, document_name: 'מסמך רחוק', status: 'pending', required_by_date: '2026-12-31', entity_name: 'גוף' },
+      { id: 4, document_name: 'מסמך שהוגש', status: 'submitted', required_by_date: '2026-04-30', entity_name: 'גוף' },
+    ];
+    render(<Dashboard entities={entities} documents={documents} checklist={[]} onNavigate={() => {}} />);
+    const section = screen.getByText(/התראות מועדים \(2\)/).closest('.dashboard-section');
+    expect(within(section).getByText(/מסמך באיחור/)).toBeInTheDocument();
+    expect(within(section).getByText(/מסמך מתקרב/)).toBeInTheDocument();
+    expect(within(section).queryByText(/מסמך רחוק/)).not.toBeInTheDocument();
+    expect(within(section).queryByText(/מסמך שהוגש/)).not.toBeInTheDocument();
+  });
+
+  test('בלי התראות — סעיף ההתראות לא מוצג', () => {
+    const documents = [
+      { id: 1, document_name: 'רחוק', status: 'pending', required_by_date: '2026-12-31', entity_name: 'גוף' },
+    ];
+    render(<Dashboard entities={entities} documents={documents} checklist={[]} onNavigate={() => {}} />);
+    expect(screen.queryByText(/התראות מועדים/)).not.toBeInTheDocument();
+  });
+
+  test('לחיצה על התראה מנווטת לעמוד המתאים', () => {
+    const onNavigate = vi.fn();
+    const documents = [
+      { id: 1, document_name: 'באיחור', status: 'pending', required_by_date: '2026-04-30', entity_name: 'גוף' },
+    ];
+    render(<Dashboard entities={entities} documents={documents} checklist={[]} onNavigate={onNavigate} />);
+    const section = screen.getByText(/התראות מועדים/).closest('.dashboard-section');
+    fireEvent.click(within(section).getByText(/📄 באיחור/));
     expect(onNavigate).toHaveBeenCalledWith('documents');
   });
 });

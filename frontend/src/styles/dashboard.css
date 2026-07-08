@@ -140,3 +140,27 @@
   background: #e8f5e9;
   border-radius: 5px;
 }
+
+/* התראות מועדים */
+.alerts-section {
+  border-top: 4px solid var(--danger);
+}
+
+.alert-item {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.alert-item:hover {
+  transform: translateX(-4px);
+}
+
+.urgency-badge {
+  display: inline-block;
+  margin-inline-start: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}

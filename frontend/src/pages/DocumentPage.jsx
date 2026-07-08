@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getUrgency, urgencyMeta } from '../utils/deadlines';
 
 export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
@@ -177,7 +178,17 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                   {doc.document_type && <p><strong>סוג:</strong> {doc.document_type}</p>}
                   {doc.required_frequency && <p><strong>תדירות:</strong> {doc.required_frequency}</p>}
                   {doc.required_by_date && (
-                    <p><strong>להגשה:</strong> {new Date(doc.required_by_date).toLocaleDateString('he-IL')}</p>
+                    <p>
+                      <strong>להגשה:</strong> {new Date(doc.required_by_date).toLocaleDateString('he-IL')}
+                      {(() => {
+                        const { level, daysLeft } = getUrgency(doc.required_by_date, doc.status);
+                        if (level === 'overdue' || level === 'soon') {
+                          const meta = urgencyMeta(level, daysLeft);
+                          return <span className="urgency-badge" style={{ backgroundColor: meta.color }}>{meta.label}</span>;
+                        }
+                        return null;
+                      })()}
+                    </p>
                   )}
                   {doc.date_filed && (
                     <p><strong>הוגש:</strong> {new Date(doc.date_filed).toLocaleDateString('he-IL')}</p>

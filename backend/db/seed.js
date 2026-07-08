@@ -35,30 +35,31 @@ const ENTITIES = [
   { name: 'משכנתא — דירה להשקעה', type: 'loan', category: 'משכנתא' },
 ];
 
-// מסמכים מצופים לכל גוף (לפי REPORTS.md) — name → [{doc, freq}]
+// מסמכים מצופים לכל גוף (לפי REPORTS.md) — name → [{name, freq, due}]
+// due = מועד הגשה משוער (להדגמת רמזור ההתראות). תאריכים יחסית ל-2026.
 const EXPECTED_DOCS = {
-  'בנק מזרחי — משפחתי': [{ name: 'טופס 867', freq: 'yearly' }],
-  'וואן זירו — השקעות': [{ name: 'טופס 867', freq: 'yearly' }],
-  'IBKR': [{ name: 'Annual Activity Statement', freq: 'yearly' }],
-  'IBI השקעות': [{ name: 'טופס 867', freq: 'yearly' }],
-  'מיטב ד"ש': [{ name: 'טופס 867', freq: 'yearly' }],
-  'קרן השתלמות': [{ name: 'אישור הפקדות שנתי', freq: 'yearly' }],
-  'קופת גמל': [{ name: 'דוח שנתי קופת גמל', freq: 'yearly' }],
-  'קרן פנסיה': [{ name: 'אישור הפקדות לפנסיה', freq: 'yearly' }],
-  'ביטוח מנהלים': [{ name: 'אישור הפקדות (סעיף 45א/47)', freq: 'yearly' }],
-  'משכנתא — דירת מגורים': [{ name: 'אישור יתרת משכנתא', freq: 'yearly' }],
-  'משכנתא — דירה להשקעה': [{ name: 'אישור יתרת משכנתא', freq: 'yearly' }],
+  'בנק מזרחי — משפחתי': [{ name: 'טופס 867', freq: 'yearly', due: '2026-04-30' }],
+  'וואן זירו — השקעות': [{ name: 'טופס 867', freq: 'yearly', due: '2026-04-30' }],
+  'IBKR': [{ name: 'Annual Activity Statement', freq: 'yearly', due: '2026-04-30' }],
+  'IBI השקעות': [{ name: 'טופס 867', freq: 'yearly', due: '2026-07-15' }],
+  'מיטב ד"ש': [{ name: 'טופס 867', freq: 'yearly', due: '2026-07-18' }],
+  'קרן השתלמות': [{ name: 'אישור הפקדות שנתי', freq: 'yearly', due: '2026-07-12' }],
+  'קופת גמל': [{ name: 'דוח שנתי קופת גמל', freq: 'yearly', due: '2026-12-31' }],
+  'קרן פנסיה': [{ name: 'אישור הפקדות לפנסיה', freq: 'yearly', due: '2026-11-30' }],
+  'ביטוח מנהלים': [{ name: 'אישור הפקדות (סעיף 45א/47)', freq: 'yearly', due: '2026-09-30' }],
+  'משכנתא — דירת מגורים': [{ name: 'אישור יתרת משכנתא', freq: 'yearly', due: '2026-07-10' }],
+  'משכנתא — דירה להשקעה': [{ name: 'אישור יתרת משכנתא', freq: 'yearly', due: '2026-08-31' }],
 };
 
-// משימות שנתיות (Outbound — לרשויות)
+// משימות שנתיות (Outbound — לרשויות) — עם מועדי הגשה
 const CHECKLIST = [
-  { task: 'הגשת דוח שנתי למס הכנסה', cat: 'דוח מס הכנסה', assignee: 'user' },
-  { task: 'דוח מע"מ', cat: 'דוח מע"מ', assignee: 'user' },
-  { task: 'מקדמות מס הכנסה', cat: 'מקדמות', assignee: 'user' },
-  { task: 'ביטוח לאומי — עצמאי', cat: 'ביטוח לאומי', assignee: 'user' },
-  { task: 'דיווח רווח הון — ניירות ערך זרים (IBKR)', cat: 'רווח הון זר', assignee: 'user' },
-  { task: 'דיווח הכנסה משכר דירה', cat: 'שכר דירה', assignee: 'user' },
-  { task: 'איסוף טופס 106', cat: 'דוח שכיר', assignee: 'spouse' },
+  { task: 'הגשת דוח שנתי למס הכנסה', cat: 'דוח מס הכנסה', assignee: 'user', due: '2026-05-31' },
+  { task: 'דוח מע"מ', cat: 'דוח מע"מ', assignee: 'user', due: '2026-07-15' },
+  { task: 'מקדמות מס הכנסה', cat: 'מקדמות', assignee: 'user', due: '2026-07-16' },
+  { task: 'ביטוח לאומי — עצמאי', cat: 'ביטוח לאומי', assignee: 'user', due: '2026-08-15' },
+  { task: 'דיווח רווח הון — ניירות ערך זרים (IBKR)', cat: 'רווח הון זר', assignee: 'user', due: '2026-04-30' },
+  { task: 'דיווח הכנסה משכר דירה', cat: 'שכר דירה', assignee: 'user', due: '2026-05-31' },
+  { task: 'איסוף טופס 106', cat: 'דוח שכיר', assignee: 'spouse', due: '2026-03-31' },
 ];
 
 async function seed() {
@@ -92,8 +93,8 @@ async function seed() {
     if (!entityId) continue;
     for (const d of docs) {
       runQuery(
-        'INSERT INTO documents (entity_id, document_name, required_frequency, status) VALUES (?, ?, ?, ?)',
-        [entityId, d.name, d.freq, 'pending']
+        'INSERT INTO documents (entity_id, document_name, required_frequency, required_by_date, status) VALUES (?, ?, ?, ?, ?)',
+        [entityId, d.name, d.freq, d.due || null, 'pending']
       );
       docCount++;
     }
@@ -103,8 +104,8 @@ async function seed() {
   console.log('✅ מכניס משימות שנתיות...');
   for (const t of CHECKLIST) {
     runQuery(
-      'INSERT INTO annual_checklist (year, task_name, task_category, assignee, status) VALUES (?, ?, ?, ?, ?)',
-      [YEAR, t.task, t.cat, t.assignee, 'pending']
+      'INSERT INTO annual_checklist (year, task_name, task_category, assignee, required_date, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [YEAR, t.task, t.cat, t.assignee, t.due || null, 'pending']
     );
   }
   console.log(`   → ${CHECKLIST.length} משימות`);

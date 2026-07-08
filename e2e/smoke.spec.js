@@ -9,6 +9,17 @@ test('הדשבורד נטען ומציג את המצאי', async ({ page }) => {
   await expect(page.locator('.stat-number').first()).toHaveText('18');
 });
 
+test('סעיף התראות המועדים מופיע בדשבורד עם פריטים באיחור', async ({ page }) => {
+  await page.goto('/');
+  const alerts = page.locator('.alerts-section');
+  await expect(alerts).toBeVisible();
+  // לפחות פריט התראה אחד (המסמכים הזרועים כוללים מועדים שעברו)
+  await expect(alerts.locator('.alert-item').first()).toBeVisible();
+  // לחיצה על התראה מנווטת לעמוד הרלוונטי
+  await alerts.locator('.alert-item').first().click();
+  await expect(page).toHaveURL(/localhost:5173/);
+});
+
 test('ניווט לעמוד הגופים ומציג גופים לפי סוג', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

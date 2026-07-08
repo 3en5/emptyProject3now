@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getUrgency, urgencyMeta } from '../utils/deadlines';
 
 export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
@@ -166,6 +167,14 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                         {task.task_category && <span className="badge">{task.task_category}</span>}
                         {task.entity_name && <span className="badge entity">{task.entity_name}</span>}
                         {task.required_date && <span className="badge date">{new Date(task.required_date).toLocaleDateString('he-IL')}</span>}
+                        {(() => {
+                          const { level, daysLeft } = getUrgency(task.required_date, task.status);
+                          if (level === 'overdue' || level === 'soon') {
+                            const meta = urgencyMeta(level, daysLeft);
+                            return <span className="urgency-badge" style={{ backgroundColor: meta.color }}>{meta.label}</span>;
+                          }
+                          return null;
+                        })()}
                       </div>
                       <div className="task-actions">
                         <span className="assignee">👤 {task.assignee === 'spouse' ? 'בן/בת זוג' : 'אני'}</span>

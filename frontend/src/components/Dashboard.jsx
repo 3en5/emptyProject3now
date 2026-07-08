@@ -1,8 +1,24 @@
+import { getUrgency, urgencyMeta, isAlerting } from '../utils/deadlines';
+
 export default function Dashboard({ entities, documents, checklist, onNavigate }) {
   const pendingDocs = documents.filter(d => d.status === 'pending').length;
   const completedDocs = documents.filter(d => d.status === 'submitted').length;
   const pendingTasks = checklist.filter(t => t.status === 'pending').length;
   const completedTasks = checklist.filter(t => t.status === 'completed').length;
+
+  // איסוף התראות דחיפות ממסמכים ומשימות יחד
+  const alerts = [
+    ...documents.map(d => ({
+      id: `doc-${d.id}`, kind: 'doc', name: d.document_name, sub: d.entity_name,
+      date: d.required_by_date, ...getUrgency(d.required_by_date, d.status),
+    })),
+    ...checklist.map(t => ({
+      id: `task-${t.id}`, kind: 'task', name: t.task_name, sub: t.task_category,
+      date: t.required_date, ...getUrgency(t.required_date, t.status),
+    })),
+  ]
+    .filter(a => isAlerting(a.level))
+    .sort((a, b) => a.daysLeft - b.daysLeft); // הכי דחוף (באיחור) קודם
 
   const entityTypes = {
     bank: '🏦 בנקים',
@@ -38,6 +54,34 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
           <p className="stat-details">⏳ {pendingTasks} ממתינים | ✅ {completedTasks} הושלמו</p>
         </div>
       </div>
+
+      {alerts.length > 0 && (
+        <div className="dashboard-section alerts-section">
+          <h2>🚨 התראות מועדים ({alerts.length})</h2>
+          <div className="pending-list">
+            {alerts.slice(0, 8).map(a => {
+              const meta = urgencyMeta(a.level, a.daysLeft);
+              return (
+                <div
+                  key={a.id}
+                  className="pending-item alert-item"
+                  style={{ borderRightColor: meta.color }}
+                  onClick={() => onNavigate(a.kind === 'doc' ? 'documents' : 'checklist')}
+                >
+                  <span>{a.kind === 'doc' ? '📄' : '📝'} {a.name}</span>
+                  {a.sub && <span className="entity-badge">{a.sub}</span>}
+                  <span className="date-badge" style={{ backgroundColor: meta.color }}>
+                    {meta.label}
+                  </span>
+                  <span className="date-badge">
+                    {new Date(a.date).toLocaleDateString('he-IL')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-section">
         <h2>🏦 גופים פיננסיים לפי סוג</h2>

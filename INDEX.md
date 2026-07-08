@@ -85,6 +85,12 @@
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס משימה, הפרדה בין ממתינות להושלמו |
 
+### Frontend — עזרים (`frontend/src/utils/`)
+
+| קובץ | תפקיד |
+|------|-------|
+| `utils/deadlines.js` | חישוב דחיפות לפי מועד+סטטוס (`getUrgency`, `urgencyMeta`, `isAlerting`). פונקציות טהורות — משמשות את הדשבורד והעמודים לרמזור ההתראות |
+
 ### טסטים (פירמידה מלאה)
 
 | קובץ | תפקיד |
@@ -92,7 +98,8 @@
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון). 14 טסטים |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
-| `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL). 10 טסטים |
+| `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
+| `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
 | `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות. 5 טסטים |
 
@@ -122,6 +129,11 @@
 - Backend: `backend/routes/checklists.js`
 - Frontend: `pages/ChecklistPage.jsx`
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)
+
+### התראות מועדים / רמזור דחיפות
+- לוגיקה: `utils/deadlines.js` (`getUrgency` — סף "מתקרב" ב-`SOON_DAYS`)
+- תצוגה: סעיף התראות ב-`Dashboard.jsx`, ותגי דחיפות ב-`DocumentPage.jsx`/`ChecklistPage.jsx`
+- עיצוב: `.alerts-section` / `.urgency-badge` ב-`styles/dashboard.css`
 
 ### חשבונות פרטניים
 - Backend: `backend/routes/accounts.js`
