@@ -54,6 +54,7 @@
 | 39 | **זיהוי אוטומטי של מועד חידוש + תיקון נשמר** — חילוץ תאריך תוקף מטקסט המסמך (מילות עוגן: "בתוקף עד", "תוקף עד", "מועד חידוש"...), שדה תאריך נערך בתיבת הזיהוי, "החל ושמור" שומר את המועד (כולל תיקון ידני) ל-`required_by_date`; 116 טסטים | `classify.js`, `DocumentPage.jsx`, `styles/cards.css`, `classify.test.js`, `analyze.test.jsx`, `smoke.spec.js` | 2026-07-08 |
 | 40 | **הרצה מקומית על Windows** — סקריפטי `.bat` להרצה בדאבל-קליק: `run-local.bat` (התקנה+בנייה+נתונים+הרצה), `start-server.bat` (הרצה מהירה), `install-boot.bat` (עלייה אוטומטית עם המחשב דרך Task Scheduler); הודעות באנגלית ASCII (עברית ב-.bat נשברת); README+INDEX עודכנו | `run-local.bat`, `start-server.bat`, `install-boot.bat`, `README.md`, `INDEX.md`, `.gitignore` | 2026-07-08 |
 | 41 | **עדכון גרסה בדאבל-קליק (Windows)** — `update.bat`: `git pull` + התקנה + בנייה מחדש, בלי לגעת בנתונים (`finance.db` מחוץ ל-git) | `update.bat`, `README.md`, `INDEX.md` | 2026-07-08 |
+| 42 | **כפתור "בדיקת עדכון תוכנה" בתוך האפליקציה** — route `/api/system` (גרסה/בדיקה/החלה מול git), רכיב `UpdateChecker` בעמוד הבית שמציג שינויים זמינים ומתקין בלחיצה; 55 API + 49 רכיבים טסטים | `backend/routes/system.js`, `backend/app.js`, `components/UpdateChecker.jsx`, `components/Dashboard.jsx`, `styles/dashboard.css`, `system.test.js`, `updateChecker.test.jsx`, `README.md`, `INDEX.md` | 2026-07-08 |
 
 ---
 

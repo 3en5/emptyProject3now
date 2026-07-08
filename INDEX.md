@@ -56,6 +56,7 @@
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
+| `backend/routes/system.js` | עדכון תוכנה מול git: גרסה נוכחית, בדיקת עדכון (`fetch`+השוואה), החלה (`pull`+build). `spawn` shell, פקודות קבועות ללא קלט משתמש | `/api/system/version` · `/update/check` · `/update/apply` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes + **הגשת frontend/dist** (production). מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -91,7 +92,8 @@
 | קובץ | תפקיד |
 |------|-------|
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
-| `frontend/src/components/Dashboard.jsx` | עמוד הבית: סטטיסטיקות, גופים לפי סוג, מסמכים ומשימות ממתינים |
+| `frontend/src/components/Dashboard.jsx` | עמוד הבית: סטטיסטיקות, גופים לפי סוג, מסמכים ומשימות ממתינים, ורכיב עדכון התוכנה |
+| `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
 | `frontend/src/components/EntityList.jsx` | תצוגת רשימת הגופים כ-cards עם כפתורי עריכה/מחיקה |
 

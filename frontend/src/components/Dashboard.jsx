@@ -1,4 +1,5 @@
 import { getUrgency, urgencyMeta, isAlerting } from '../utils/deadlines';
+import UpdateChecker from './UpdateChecker';
 
 export default function Dashboard({ entities, documents, checklist, onNavigate }) {
   const pendingDocs = documents.filter(d => d.status === 'pending').length;
@@ -148,6 +149,8 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
           <p className="success-message">✅ כל המשימות הושלמו!</p>
         )}
       </div>
+
+      <UpdateChecker />
     </div>
   );
 }
