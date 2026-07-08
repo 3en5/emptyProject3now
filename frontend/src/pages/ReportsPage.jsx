@@ -15,16 +15,20 @@ function fmt(amount, currency) {
   return `${sym}${Number(amount || 0).toLocaleString('he-IL')}`;
 }
 
+const ACTION_ICON = { create: '➕', update: '✏️', delete: '🗑️' };
+
 export default function ReportsPage() {
   const [summary, setSummary] = useState(null);
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let active = true;
-    axios
-      .get('/api/summary')
-      .then((res) => { if (active) setSummary(res.data); })
+    Promise.all([axios.get('/api/summary'), axios.get('/api/activity?limit=15')])
+      .then(([sumRes, actRes]) => {
+        if (active) { setSummary(sumRes.data); setActivity(actRes.data); }
+      })
       .catch((err) => { if (active) setError(err.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -81,6 +85,24 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      <div className="dashboard-section">
+        <h2>🕒 שינויים אחרונים</h2>
+        {activity.length === 0 ? (
+          <p className="no-data">אין שינויים אחרונים</p>
+        ) : (
+          <div className="pending-list">
+            {activity.map((a) => (
+              <div key={a.id} className="pending-item">
+                <span>{ACTION_ICON[a.action] || '•'} {a.description}</span>
+                <span className="date-badge">
+                  {a.created_at ? new Date(a.created_at.replace(' ', 'T') + 'Z').toLocaleString('he-IL') : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="dashboard-section">
         <h2>📋 סיכום כללי</h2>

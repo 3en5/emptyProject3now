@@ -91,6 +91,21 @@ test('עמוד הדוחות מציג שווי נקי לפי מטבע', async ({ 
   await expect(page.locator('.networth-row.net').first()).toBeVisible();
 });
 
+test('שינוי נרשם ביומן ומופיע בסעיף "שינויים אחרונים"', async ({ page }) => {
+  await page.goto('/');
+  // ביצוע שינוי — הוספת גוף
+  await page.getByRole('button', { name: /גופים פיננסיים/ }).click();
+  await page.getByRole('button', { name: /הוסף גוף פיננסי/ }).click();
+  await page.fill('input[name="name"]', 'גוף ליומן');
+  await page.selectOption('select[name="type"]', 'bank');
+  await page.getByRole('button', { name: /שמור/ }).click();
+  await expect(page.getByText('גוף ליומן')).toBeVisible();
+  // בדיקה בדוחות
+  await page.getByRole('button', { name: /📊 דוחות/ }).click();
+  const section = page.locator('.dashboard-section', { hasText: 'שינויים אחרונים' });
+  await expect(section.getByText(/נוסף גוף "גוף ליומן"/)).toBeVisible();
+});
+
 test('השוואת שנים מציגה מסמך חסר וגוף שהסתיים', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /🔄 השוואת שנים/ }).click();

@@ -29,7 +29,8 @@
 | `backend/db/schema.sql` | הגדרת כל הטבלאות והאינדקסים. **כאן משנים מבנה נתונים** (עמודות, טבלאות) |
 | `backend/db/init.js` | אתחול ה-DB: טעינת/יצירת הקובץ, הרצת הסכימה, שמירה לדיסק (`saveDatabase`) |
 | `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן** |
-| `backend/db/seed.js` | זריעת מצאי אמיתי (18 גופים, מסמכים מצופים, משימות שנתיות). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
+| `backend/db/seed.js` | זריעת מצאי אמיתי (21 גופים, מסמכים 2025/2026, משימות, חשבונות, רכב/רישיונות). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
+| `backend/activity.js` | יומן שינויים: `logActivity()` (נקרא מכל mutation) + `getRecentActivity()` |
 
 ### Backend — API Routes (`backend/routes/`)
 
@@ -45,6 +46,7 @@
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
+| `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -169,8 +171,13 @@
 
 ### דוחות / סיכום כספי
 - Backend: `backend/routes/summary.js` (`/api/summary` — נכסים=חשבונות שאינם 'loan', התחייבויות=חשבונות 'loan')
-- Frontend: `pages/ReportsPage.jsx` (שולף בעצמו); עיצוב `.networth-*` ב-`styles/dashboard.css`
+- Frontend: `pages/ReportsPage.jsx` (שולף summary + activity); עיצוב `.networth-*` ב-`styles/dashboard.css`
 - ⚠️ מטבעות לא מעורבבים — סיכום נפרד לכל מטבע
+
+### יומן שינויים (audit log)
+- טבלה: `activity_log` (schema); helper: `backend/activity.js` (`logActivity`)
+- **כל route של mutation** (entities/accounts/documents/checklists) קורא ל-`logActivity` — לשמור על זה בכל route חדש
+- תצוגה: סעיף "🕒 שינויים אחרונים" ב-`ReportsPage.jsx` (שולף `/api/activity`)
 
 ### השוואת שנה-לשנה (מסמכים חסרים)
 - Backend: `backend/routes/comparison.js` (`/api/comparison/:year` — משווה מול `:year-1`)

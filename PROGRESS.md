@@ -44,6 +44,7 @@
 | 29 | **רכבים ורישיונות** — סוגי גופים חדשים (vehicle/license) + קטגוריות; seed עם ביטוח חובה/מקיף/טסט, כלי יריה, מתווך נדל"ן. משתלב ברמזור המועדים; 92 טסטים | `EntityForm.jsx`, `Dashboard.jsx`, `EntityList.jsx`, `EntitiesPage.jsx`, `seed.js` | 2026-07-08 |
 | 30 | **מצב צפייה-בלבד** — toggle בניווט שמסתיר כל כפתורי העריכה (React Context + localStorage); 96 טסטים | `ReadOnlyContext.js`, `App.jsx`, `Navigation.jsx`, כל העמודים | 2026-07-08 |
 | 31 | **ייצוא רשימת פעולות CSV** — endpoint עם BOM+escaping, כפתור הורדה; לרו"ח/הדפסה; 99 טסטים | `routes/export.js`, `ChecklistPage.jsx` | 2026-07-08 |
+| 32 | **יומן שינויים (audit log)** — טבלת `activity_log`, `logActivity` בכל mutation, `/api/activity`, סעיף "שינויים אחרונים" בדוחות; 103 טסטים | `activity.js`, `routes/activity.js`, כל ה-routes, `ReportsPage.jsx`, `schema.sql` | 2026-07-08 |
 
 ---
 
@@ -89,7 +90,7 @@
 ### שלב 3 — דוחות וניתוח
 - [x] סיכום נכסים והתחייבויות (שווי נקי לפי מטבע + התפלגות)
 - [x] ייצוא רשימת פעולות ל-CSV (לרו"ח/הדפסה)
-- [ ] דוח חודשי של שינויים (דורש טבלת היסטוריה)
+- [x] יומן שינויים / audit log + סעיף "שינויים אחרונים"
 - [ ] מעקב ניירות ערך (דורש feed מחירים חיצוני)
 - [ ] ייצוא/סיכום תנועות בנק
 

@@ -1,5 +1,6 @@
 import express from 'express';
 import { runQuery, getOne, getAll } from '../db/helper.js';
+import { logActivity } from '../activity.js';
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.post('/', (req, res) => {
   }
 
   const newTask = getOne('SELECT * FROM annual_checklist ORDER BY id DESC LIMIT 1');
+  if (newTask) logActivity('create', 'task', newTask.id, `נוספה משימה "${newTask.task_name}"`);
   res.status(201).json(newTask);
 });
 
@@ -77,12 +79,19 @@ router.put('/:id', (req, res) => {
   }
 
   const updated = getOne('SELECT * FROM annual_checklist WHERE id = ?', [parseInt(req.params.id)]);
+  if (updated) {
+    const label = updated.status === 'completed' ? 'הושלמה משימה' : 'עודכנה משימה';
+    logActivity('update', 'task', updated.id, `${label} "${updated.task_name}"`);
+  }
   res.json(updated);
 });
 
 // Delete checklist task
 router.delete('/:id', (req, res) => {
-  runQuery('DELETE FROM annual_checklist WHERE id = ?', [parseInt(req.params.id)]);
+  const id = parseInt(req.params.id);
+  const existing = getOne('SELECT task_name FROM annual_checklist WHERE id = ?', [id]);
+  runQuery('DELETE FROM annual_checklist WHERE id = ?', [id]);
+  if (existing) logActivity('delete', 'task', id, `נמחקה משימה "${existing.task_name}"`);
   res.json({ message: 'Task deleted successfully' });
 });
 

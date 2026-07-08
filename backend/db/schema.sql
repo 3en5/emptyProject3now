@@ -74,6 +74,16 @@ CREATE TABLE IF NOT EXISTS annual_checklist (
   FOREIGN KEY (entity_id) REFERENCES financial_entities(id)
 );
 
+-- Activity Log (יומן שינויים / audit trail)
+CREATE TABLE IF NOT EXISTS activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action TEXT NOT NULL,        -- create / update / delete
+  target_type TEXT NOT NULL,   -- entity / account / document / task
+  target_id INTEGER,
+  description TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_entities_type ON financial_entities(type);
 CREATE INDEX IF NOT EXISTS idx_entities_category ON financial_entities(category);
@@ -82,3 +92,4 @@ CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(entity_id);
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_checklist_year ON annual_checklist(year);
 CREATE INDEX IF NOT EXISTS idx_checklist_status ON annual_checklist(status);
+CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at);

@@ -1,5 +1,6 @@
 import express from 'express';
 import { runQuery, getOne, getAll } from '../db/helper.js';
+import { logActivity } from '../activity.js';
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.post('/', (req, res) => {
     }
 
     const newEntity = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    if (newEntity) logActivity('create', 'entity', newEntity.id, `נוסף גוף "${newEntity.name}"`);
     res.status(201).json(newEntity || { message: 'Created but could not retrieve' });
   } catch (error) {
     console.error('Route error:', error);
@@ -68,12 +70,14 @@ router.put('/:id', (req, res) => {
   }
 
   const updated = getOne('SELECT * FROM financial_entities WHERE id = ?', [parseInt(req.params.id)]);
+  if (updated) logActivity('update', 'entity', updated.id, `עודכן גוף "${updated.name}"`);
   res.json(updated);
 });
 
 // Delete entity
 router.delete('/:id', (req, res) => {
   const id = parseInt(req.params.id);
+  const existing = getOne('SELECT name FROM financial_entities WHERE id = ?', [id]);
 
   // Delete related records
   runQuery('DELETE FROM documents WHERE entity_id = ?', [id]);
@@ -81,6 +85,7 @@ router.delete('/:id', (req, res) => {
   runQuery('DELETE FROM annual_checklist WHERE entity_id = ?', [id]);
   runQuery('DELETE FROM financial_entities WHERE id = ?', [id]);
 
+  if (existing) logActivity('delete', 'entity', id, `נמחק גוף "${existing.name}"`);
   res.json({ message: 'Entity deleted successfully' });
 });
 

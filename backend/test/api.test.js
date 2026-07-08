@@ -342,6 +342,32 @@ describe('comparison (year-over-year)', () => {
   });
 });
 
+describe('activity log', () => {
+  test('יצירת/עדכון/מחיקה נרשמים ביומן', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'גוף לבדיקה', type: 'bank' });
+    await request(app).put(`/api/entities/${e.body.id}`).send({ name: 'גוף מעודכן', type: 'bank' });
+    await request(app).delete(`/api/entities/${e.body.id}`);
+
+    const res = await request(app).get('/api/activity?limit=10');
+    assert.equal(res.status, 200);
+    const actions = res.body.map((a) => a.action);
+    assert.ok(actions.includes('create'));
+    assert.ok(actions.includes('update'));
+    assert.ok(actions.includes('delete'));
+    // הכי חדש קודם — המחיקה בראש
+    assert.equal(res.body[0].action, 'delete');
+    assert.match(res.body[0].description, /נמחק גוף/);
+  });
+
+  test('שינוי סטטוס מסמך נרשם עם תיאור מתאים', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'בנק', type: 'bank' });
+    const d = await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: '867' });
+    await request(app).put(`/api/documents/${d.body.id}`).send({ document_name: '867', status: 'submitted' });
+    const res = await request(app).get('/api/activity?limit=5');
+    assert.match(res.body[0].description, /הוגש/);
+  });
+});
+
 describe('export CSV', () => {
   test('מייצא רשימת פעולות עם מסמכים ומשימות ממתינים', async () => {
     const e = await request(app).post('/api/entities').send({ name: 'בנק מזרחי', type: 'bank' });

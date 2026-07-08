@@ -1,5 +1,6 @@
 import express from 'express';
 import { runQuery, getOne, getAll } from '../db/helper.js';
+import { logActivity } from '../activity.js';
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.post('/', (req, res) => {
   }
 
   const newAccount = getOne('SELECT * FROM accounts ORDER BY id DESC LIMIT 1');
+  if (newAccount) logActivity('create', 'account', newAccount.id, `נוסף חשבון "${newAccount.account_name}"`);
   res.status(201).json(newAccount);
 });
 
@@ -58,12 +60,16 @@ router.put('/:id', (req, res) => {
   }
 
   const updated = getOne('SELECT * FROM accounts WHERE id = ?', [parseInt(req.params.id)]);
+  if (updated) logActivity('update', 'account', updated.id, `עודכן חשבון "${updated.account_name}"`);
   res.json(updated);
 });
 
 // Delete account
 router.delete('/:id', (req, res) => {
-  runQuery('DELETE FROM accounts WHERE id = ?', [parseInt(req.params.id)]);
+  const id = parseInt(req.params.id);
+  const existing = getOne('SELECT account_name FROM accounts WHERE id = ?', [id]);
+  runQuery('DELETE FROM accounts WHERE id = ?', [id]);
+  if (existing) logActivity('delete', 'account', id, `נמחק חשבון "${existing.account_name}"`);
   res.json({ message: 'Account deleted successfully' });
 });
 

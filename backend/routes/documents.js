@@ -5,6 +5,7 @@ import { runQuery, getOne, getAll } from '../db/helper.js';
 import { upload, UPLOAD_DIR } from '../upload.js';
 import { extractText } from '../extract.js';
 import { classifyText } from '../classify.js';
+import { logActivity } from '../activity.js';
 
 const router = express.Router();
 
@@ -72,6 +73,7 @@ router.post('/', (req, res) => {
   }
 
   const newDoc = getOne('SELECT * FROM documents ORDER BY id DESC LIMIT 1');
+  if (newDoc) logActivity('create', 'document', newDoc.id, `נוסף מסמך "${newDoc.document_name}"`);
   res.status(201).json(newDoc);
 });
 
@@ -91,6 +93,11 @@ router.put('/:id', (req, res) => {
   }
 
   const updated = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
+  if (updated) {
+    const STATUS_HE = { submitted: 'הוגש', verified: 'אומת', pending: 'ממתין', overdue: 'בעיכוב' };
+    const label = STATUS_HE[updated.status] ? `סטטוס "${updated.document_name}" → ${STATUS_HE[updated.status]}` : `עודכן מסמך "${updated.document_name}"`;
+    logActivity('update', 'document', updated.id, label);
+  }
   res.json(updated);
 });
 
@@ -123,6 +130,7 @@ router.post('/:id/upload', (req, res) => {
       return res.status(500).json({ error: result.error });
     }
     const updated = getOne('SELECT * FROM documents WHERE id = ?', [id]);
+    logActivity('update', 'document', id, `הועלה קובץ למסמך "${updated?.document_name || ''}"`);
     res.json(updated);
   });
 });
@@ -173,6 +181,7 @@ router.delete('/:id', (req, res) => {
     }
   }
   runQuery('DELETE FROM documents WHERE id = ?', [id]);
+  if (doc) logActivity('delete', 'document', id, `נמחק מסמך "${doc.document_name}"`);
   res.json({ message: 'Document deleted successfully' });
 });
 
