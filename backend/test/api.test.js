@@ -342,6 +342,28 @@ describe('comparison (year-over-year)', () => {
   });
 });
 
+describe('monthly report', () => {
+  test('מחזיר מסמכים ומשימות שמועדם בחודש הנבחר', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'בנק', type: 'bank' });
+    await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: '867', required_by_date: '2026-07-15' });
+    await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: 'אחר', required_by_date: '2026-09-01' });
+    await request(app).post('/api/checklists').send({ year: 2026, task_name: 'מע"מ', required_date: '2026-07-20' });
+
+    const res = await request(app).get('/api/report/monthly?month=2026-07');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.summary.dueDocuments, 1); // רק זה של יולי
+    assert.equal(res.body.dueDocuments[0].document_name, '867');
+    assert.equal(res.body.summary.dueTasks, 1);
+    assert.equal(typeof res.body.summary.changes, 'number');
+  });
+
+  test('חודש לא תקין נופל לחודש הנוכחי (200)', async () => {
+    const res = await request(app).get('/api/report/monthly?month=bad');
+    assert.equal(res.status, 200);
+    assert.match(res.body.month, /^\d{4}-\d{2}$/);
+  });
+});
+
 describe('activity log', () => {
   test('יצירת/עדכון/מחיקה נרשמים ביומן', async () => {
     const e = await request(app).post('/api/entities').send({ name: 'גוף לבדיקה', type: 'bank' });

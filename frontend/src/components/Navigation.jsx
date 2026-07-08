@@ -68,6 +68,14 @@ export default function Navigation({ currentPage, onPageChange, readOnly, onTogg
             🔄 השוואת שנים
           </button>
         </li>
+        <li>
+          <button
+            className={`nav-button ${currentPage === 'monthly' ? 'active' : ''}`}
+            onClick={() => onPageChange('monthly')}
+          >
+            📅 דוח חודשי
+          </button>
+        </li>
       </ul>
     </nav>
   );

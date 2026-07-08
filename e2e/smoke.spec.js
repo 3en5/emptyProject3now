@@ -186,6 +186,16 @@ test('מצב צפייה-בלבד מסתיר כפתורי עריכה', async ({ p
   await expect(page.locator('.entity-card').first()).toBeVisible();
 });
 
+test('דוח חודשי מציג מסמכים שמועדם בחודש', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📅 דוח חודשי/ }).click();
+  await expect(page.getByRole('heading', { name: /דוח חודשי/ })).toBeVisible();
+  // בורר החודש → יולי 2026 (בו נמצאים מסמכי הזריעה)
+  await page.locator('input[type="month"]').fill('2026-07');
+  const docsSection = page.locator('.dashboard-section', { hasText: 'מסמכים שמועדם החודש' });
+  await expect(docsSection.locator('.pending-item').first()).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

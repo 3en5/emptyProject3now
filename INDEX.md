@@ -47,6 +47,7 @@
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
+| `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -96,6 +97,7 @@
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
 | `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + בורר שנה. שולף `/api/comparison/:year` |
+| `frontend/src/pages/MonthlyPage.jsx` | עמוד דוח חודשי: בורר חודש + מסמכים/משימות שמועדם החודש + שינויים. שולף `/api/report/monthly` |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
 

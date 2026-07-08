@@ -9,6 +9,7 @@ import DocumentPage from './pages/DocumentPage';
 import AccountsPage from './pages/AccountsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComparisonPage from './pages/ComparisonPage';
+import MonthlyPage from './pages/MonthlyPage';
 import { ReadOnlyContext } from './ReadOnlyContext';
 
 const API_URL = '/api';
@@ -262,6 +263,8 @@ export default function App() {
         {currentPage === 'reports' && <ReportsPage />}
 
         {currentPage === 'comparison' && <ComparisonPage />}
+
+        {currentPage === 'monthly' && <MonthlyPage />}
       </main>
     </div>
     </ReadOnlyContext.Provider>

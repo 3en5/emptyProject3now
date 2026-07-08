@@ -8,6 +8,7 @@ import summaryRouter from './routes/summary.js';
 import comparisonRouter from './routes/comparison.js';
 import exportRouter from './routes/export.js';
 import activityRouter from './routes/activity.js';
+import reportRouter from './routes/report.js';
 
 // יוצר את אפליקציית Express (בלי להאזין לפורט ובלי אתחול DB).
 // מיוצא בנפרד כדי שטסטים יוכלו לייבא אותו ולהריץ בקשות ישירות.
@@ -25,6 +26,7 @@ export function createApp() {
   app.use('/api/comparison', comparisonRouter);
   app.use('/api/export', exportRouter);
   app.use('/api/activity', activityRouter);
+  app.use('/api/report', reportRouter);
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
