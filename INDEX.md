@@ -44,6 +44,7 @@
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
+| `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -152,6 +153,10 @@
 - Backend: `backend/routes/checklists.js`
 - Frontend: `pages/ChecklistPage.jsx`
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)
+
+### ייצוא CSV (רשימת פעולות לרו"ח/הדפסה)
+- Backend: `backend/routes/export.js` (`/api/export/action-list.csv?year=YYYY`) — BOM ל-UTF-8, escaping
+- Frontend: כפתור "📥 ייצוא רשימת פעולות" ב-`ChecklistPage.jsx` (קישור `download`)
 
 ### התראות מועדים / רמזור דחיפות
 - לוגיקה: `utils/deadlines.js` (`getUrgency` — סף "מתקרב" ב-`SOON_DAYS`)

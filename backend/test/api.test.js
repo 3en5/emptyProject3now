@@ -342,6 +342,31 @@ describe('comparison (year-over-year)', () => {
   });
 });
 
+describe('export CSV', () => {
+  test('מייצא רשימת פעולות עם מסמכים ומשימות ממתינים', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'בנק מזרחי', type: 'bank' });
+    await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: 'טופס 867', year: 2026, required_by_date: '2026-04-30' });
+    await request(app).post('/api/checklists').send({ year: 2026, task_name: 'דוח שנתי', task_category: 'מס' });
+
+    const res = await request(app).get('/api/export/action-list.csv?year=2026');
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-type'], /text\/csv/);
+    assert.match(res.headers['content-disposition'], /action-list-2026\.csv/);
+    assert.match(res.text, /טופס 867/);
+    assert.match(res.text, /בנק מזרחי/);
+    assert.match(res.text, /דוח שנתי/);
+    // כותרת CSV
+    assert.match(res.text, /סוג,פריט/);
+  });
+
+  test('שדות עם פסיק עטופים במרכאות', async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'גוף, עם פסיק', type: 'bank' });
+    await request(app).post('/api/documents').send({ entity_id: e.body.id, document_name: 'מסמך', year: 2026 });
+    const res = await request(app).get('/api/export/action-list.csv?year=2026');
+    assert.match(res.text, /"גוף, עם פסיק"/);
+  });
+});
+
 describe('summary', () => {
   test('מחשב נכסים/התחייבויות/שווי-נקי לפי מטבע', async () => {
     // בנק (נכס) עם 1000 ILS

@@ -93,11 +93,20 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       <h1>✅ משימות שנתיות {new Date().getFullYear()}</h1>
 
       <div className="page-controls">
-        {!readOnly && (
-          <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
-            {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {!readOnly && (
+            <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
+              {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
+            </button>
+          )}
+          <a
+            className="btn btn-secondary"
+            href={`/api/export/action-list.csv?year=${new Date().getFullYear()}`}
+            download
+          >
+            📥 ייצוא רשימת פעולות (CSV)
+          </a>
+        </div>
         <div className="stats">
           <span>⏳ {getPendingCount()} ממתינות</span>
           <span>✅ {getCompletedCount()} הושלמו</span>

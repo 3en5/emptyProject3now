@@ -148,6 +148,16 @@ test('רכבים ורישיונות: סינון מציג רכב, ומסמכי ח
   await expect(page.getByText('ביטוח חובה')).toBeVisible();
 });
 
+test('ייצוא CSV מוריד קובץ רשימת פעולות', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /משימות שנתיות/ }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('link', { name: /ייצוא רשימת פעולות/ }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/action-list-\d+\.csv/);
+});
+
 test('מצב צפייה-בלבד מסתיר כפתורי עריכה', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();
