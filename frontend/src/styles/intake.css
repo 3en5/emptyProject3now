@@ -221,6 +221,12 @@
   color: var(--warning);
 }
 
+.intake-task-matched {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--success);
+}
+
 .intake-saved {
   margin-top: 0.5rem;
   color: var(--success);

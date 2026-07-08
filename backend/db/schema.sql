@@ -74,9 +74,12 @@ CREATE TABLE IF NOT EXISTS annual_checklist (
   status TEXT DEFAULT 'pending',
   notes TEXT,
   assignee TEXT,
+  auto_completed INTEGER DEFAULT 0,      -- הושלמה אוטומטית עקב קליטת מסמך תואם — ניתן לביטול/אישור
+  completed_by_document_id INTEGER,      -- המסמך שגרם להשלמה האוטומטית (לצורך תצוגה/קישור)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (entity_id) REFERENCES financial_entities(id)
+  FOREIGN KEY (entity_id) REFERENCES financial_entities(id),
+  FOREIGN KEY (completed_by_document_id) REFERENCES documents(id)
 );
 
 -- Activity Log (יומן שינויים / audit trail)

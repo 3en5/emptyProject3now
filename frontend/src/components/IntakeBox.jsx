@@ -86,6 +86,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
           suggestedType: issuer?.suggestedType || '',
           method: data.suggestions?.method, // 'gpt' | 'rules' — מי ניתח
           aiError: data.suggestions?.aiError, // GPT הופעל אך נכשל
+          matchedTask: data.matchedTask, // משימה שנתית שסומנה אוטומטית כהושלמה עקב המסמך
           document: data.document,
           edit: {
             entity_id: data.document.entity_id,
@@ -216,6 +217,9 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                     <p className="intake-method">{METHOD_META[r.method].icon} {METHOD_META[r.method].label}{r.aiError && ' — GPT נכשל, נופל לכללים'}</p>
                   )}
                   {r.note && <p className="intake-note">⚠️ {r.note}</p>}
+                  {r.matchedTask && (
+                    <p className="intake-task-matched">✔️ גם סומנה כהושלמה משימה שנתית: <strong>{r.matchedTask.task_name}</strong></p>
+                  )}
                   {r.action === 'duplicate' ? (
                     <p className="intake-saved">
                       ♻️ לא הועלה שוב.{' '}

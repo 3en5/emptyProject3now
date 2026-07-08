@@ -7,6 +7,7 @@ import { upload, UPLOAD_DIR } from '../upload.js';
 import { understandDocument } from '../understand.js';
 import { gptAvailable } from '../gpt.js';
 import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
+import { matchChecklistTask } from '../checklistMatch.js';
 import { logActivity } from '../activity.js';
 
 const router = express.Router();
@@ -14,6 +15,29 @@ const router = express.Router();
 // SHA-256 של קובץ — לזיהוי העלאות כפולות
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+// מסמך שהתקבל (קובץ צורף) עשוי למלא משימה שנתית ("איסוף טופס 106" וכו') —
+// מחפשים התאמה חזקה בין המסמך למשימות הפתוחות של השנה הנוכחית, ומסמנים אוטומטית.
+// מוחזר task מלא (לתצוגה ל-frontend) או null אם לא נמצאה התאמה.
+function tryAutoCompleteChecklist(doc) {
+  const year = new Date().getFullYear();
+  const openTasks = getAll(
+    `SELECT * FROM annual_checklist WHERE year = ? AND status IN ('pending', 'in_progress')`,
+    [year]
+  );
+  const match = matchChecklistTask(doc, openTasks);
+  if (!match) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  runQuery(
+    `UPDATE annual_checklist
+     SET status = 'completed', completed_date = ?, auto_completed = 1, completed_by_document_id = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [today, doc.id, match.id]
+  );
+  logActivity('update', 'task', match.id, `סומנה כהושלמה אוטומטית עקב מסמך "${doc.document_name}"`);
+  return getOne('SELECT * FROM annual_checklist WHERE id = ?', [match.id]);
 }
 
 // עמודת amounts נשמרת כ-JSON string ב-DB; הופכים אותה למערך לפני שליחה ל-frontend.
@@ -219,10 +243,14 @@ router.post('/intake', (req, res) => {
         JOIN financial_entities e ON d.entity_id = e.id
         WHERE d.id = ?`, [docId]);
 
+      // מסמך שהתקבל עשוי למלא משימה שנתית — לא תלוי בביטחון הזיהוי (המסמך פיזית התקבל)
+      const matchedTask = tryAutoCompleteChecklist(document);
+
       res.status(201).json({
         document: withParsedAmounts(document),
         action: decision.action,
         suggestions,
+        matchedTask,
         note: suggestions.confidence === 'low'
           ? (gptAvailable()
               ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
@@ -264,9 +292,16 @@ router.post('/:id/upload', (req, res) => {
     if (!result.success) {
       return res.status(500).json({ error: result.error });
     }
-    const updated = getOne('SELECT * FROM documents WHERE id = ?', [id]);
+    const updated = getOne(`
+      SELECT d.*, e.name as entity_name FROM documents d
+      JOIN financial_entities e ON d.entity_id = e.id
+      WHERE d.id = ?`, [id]);
     logActivity('update', 'document', id, `הועלה קובץ למסמך "${updated?.document_name || ''}"`);
-    res.json(updated);
+
+    // כמו בקליטה — מסמך שהתקבל עשוי למלא משימה שנתית תואמת
+    const matchedTask = updated ? tryAutoCompleteChecklist(updated) : null;
+
+    res.json({ ...withParsedAmounts(updated), matchedTask });
   });
 });
 

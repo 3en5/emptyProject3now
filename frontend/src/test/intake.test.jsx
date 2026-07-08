@@ -204,4 +204,22 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     expect(screen.getByText(/סכום ביטוח: 500,000 ₪/)).toBeInTheDocument();
     expect(screen.getByText(/1\.3\.2025/)).toBeInTheDocument(); // תאריך המסמך בפורמט עברי
   });
+
+  test('משימה שנתית שהושלמה אוטומטית עקב המסמך מוצגת בשורת התוצאה', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: { ...INTAKE_MATCHED, matchedTask: { id: 9, task_name: 'איסוף טופס 106', status: 'completed' } },
+    });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('form106.pdf');
+    expect(await screen.findByText(/גם סומנה כהושלמה משימה שנתית/)).toBeInTheDocument();
+    expect(screen.getByText('איסוף טופס 106')).toBeInTheDocument();
+  });
+
+  test('בלי משימה תואמת — אין הודעה על משימה', async () => {
+    vi.mocked(axios.post).mockResolvedValue({ data: { ...INTAKE_MATCHED, matchedTask: null } });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('x.pdf');
+    await screen.findByText(/זוהה ותויק לסלוט קיים/);
+    expect(screen.queryByText(/גם סומנה כהושלמה/)).not.toBeInTheDocument();
+  });
 });

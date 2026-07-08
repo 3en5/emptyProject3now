@@ -54,6 +54,7 @@ beforeEach(() => {
   const db = getDatabase();
   db.run('DELETE FROM documents');
   db.run('DELETE FROM financial_entities');
+  db.run('DELETE FROM annual_checklist');
 });
 
 describe('decideFiling — לוגיקת ההחלטה (טהורה)', () => {
@@ -247,5 +248,82 @@ describe('תקציר, סכומים ותאריך מסמך (summary/amounts/doc_da
     const res = await request(app).put(`/api/documents/${created.body.id}`).send({ document_name: 'מסמך', status: 'submitted' });
     assert.equal(res.body.summary, 'תקציר מקורי'); // לא נדרס
     assert.deepEqual(res.body.amounts, ['100 ₪']); // לא נדרס
+  });
+});
+
+describe('השלמה אוטומטית של משימה שנתית עקב מסמך שהתקבל', () => {
+  test('קליטת "טופס 106" מסמנת אוטומטית את המשימה "איסוף טופס 106" כהושלמה', async () => {
+    const year = new Date().getFullYear();
+    await request(app).post('/api/checklists').send({
+      year, task_name: 'איסוף טופס 106', task_category: 'דוח שכיר', assignee: 'spouse', status: 'pending',
+    });
+    await request(app).post('/api/entities').send({ name: 'מעסיק', type: 'other' });
+
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('some employer form 106 for tax year'), 'form106.pdf');
+
+    assert.equal(res.status, 201);
+    assert.ok(res.body.matchedTask); // המשימה סומנה
+    assert.equal(res.body.matchedTask.task_name, 'איסוף טופס 106');
+    assert.equal(res.body.matchedTask.status, 'completed');
+    assert.equal(res.body.matchedTask.auto_completed, 1);
+    assert.equal(res.body.matchedTask.completed_by_document_id, res.body.document.id);
+
+    // גם ב-GET /api/checklists/current המשימה מופיעה כהושלמה, עם שם המסמך המקושר
+    const list = await request(app).get('/api/checklists/current');
+    const task = list.body.find((t) => t.task_name === 'איסוף טופס 106');
+    assert.equal(task.status, 'completed');
+    assert.equal(task.completed_by_document_name, res.body.document.document_name);
+  });
+
+  test('החלפת קובץ בכרטיס קיים (/:id/upload) גם מפעילה את ההשלמה האוטומטית', async () => {
+    const year = new Date().getFullYear();
+    const task = await request(app).post('/api/checklists').send({
+      year, task_name: 'דיווח רווח הון — ניירות ערך זרים (IBKR)', task_category: 'רווח הון זר', status: 'pending',
+    });
+    await request(app).post('/api/entities').send({ name: 'IBKR', type: 'investment' });
+    const ent = getOne('SELECT * FROM financial_entities WHERE name = ?', ['IBKR']);
+    const doc = await request(app).post('/api/documents').send({ entity_id: ent.id, document_name: 'זמני' });
+
+    const res = await request(app)
+      .post(`/api/documents/${doc.body.id}/upload`)
+      .attach('file', makePdf('anything'), 'ibkr.pdf');
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.matchedTask?.id, task.body.id);
+    assert.equal(res.body.matchedTask.status, 'completed');
+  });
+
+  test('אין משימה תואמת → matchedTask הוא null, שום דבר לא מסומן', async () => {
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('completely unrelated content xyz'), 'x.pdf');
+    assert.equal(res.status, 201);
+    assert.equal(res.body.matchedTask, null);
+  });
+
+  test('אישור פיקוח: PUT עם auto_completed=0 משאיר completed אבל מנקה את הדגל', async () => {
+    const year = new Date().getFullYear();
+    await request(app).post('/api/checklists').send({ year, task_name: 'איסוף טופס 106', task_category: 'דוח שכיר', status: 'pending' });
+    const intake = await request(app).post('/api/documents/intake').attach('file', makePdf('form 106'), 'f.pdf');
+    const taskId = intake.body.matchedTask.id;
+
+    const confirm = await request(app).put(`/api/checklists/${taskId}`).send({ ...intake.body.matchedTask, auto_completed: 0 });
+    assert.equal(confirm.status, 200);
+    assert.equal(confirm.body.status, 'completed'); // עדיין הושלם
+    assert.equal(confirm.body.auto_completed, 0); // אבל הדגל האוטומטי נוקה
+    assert.ok(confirm.body.completed_by_document_id); // הקשר למסמך נשמר כתיעוד
+  });
+
+  test('"החזר לממתין" (status→pending) מנקה גם את completed_by_document_id', async () => {
+    const year = new Date().getFullYear();
+    await request(app).post('/api/checklists').send({ year, task_name: 'איסוף טופס 106', task_category: 'דוח שכיר', status: 'pending' });
+    const intake = await request(app).post('/api/documents/intake').attach('file', makePdf('form 106'), 'f2.pdf');
+    const task = intake.body.matchedTask;
+
+    const undo = await request(app).put(`/api/checklists/${task.id}`).send({ ...task, status: 'pending', completed_date: null, auto_completed: 0 });
+    assert.equal(undo.body.status, 'pending');
+    assert.equal(undo.body.completed_by_document_id, null);
   });
 });

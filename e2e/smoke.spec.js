@@ -239,3 +239,36 @@ test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page })
   await page.getByRole('button', { name: /שמור/ }).click();
   await expect(page.getByText('בנק חדש לבדיקה')).toBeVisible();
 });
+
+test('קליטת "טופס 106" מסמנת אוטומטית את משימת "איסוף טופס 106" בעמוד המשימות', async ({ page }) => {
+  await page.goto('/');
+  // מנקים את משימת "איסוף טופס 106" הזרועה (טסטים אחרים בקובץ עלולים כבר לסמן/למחוק אותה)
+  // ויוצרים משימה ייעודית לטסט — כדי שההתאמה תהיה חד-משמעית ובלתי-תלויה בסדר הרצה.
+  const year = await page.evaluate(() => new Date().getFullYear());
+  await page.evaluate(async (y) => {
+    const list = await fetch('/api/checklists/current').then((r) => r.json());
+    const seeded = list.find((t) => t.task_name === 'איסוף טופס 106');
+    if (seeded) await fetch(`/api/checklists/${seeded.id}`, { method: 'DELETE' });
+    await fetch('/api/checklists', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: y, task_name: 'איסוף טופס 106 — טסט', task_category: 'דוח שכיר', status: 'pending' }),
+    });
+  }, year);
+
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'form106.pdf',
+    mimeType: 'application/pdf',
+    buffer: makePdf('form 106 tofes 106 2025 employer summary'),
+  });
+  const result = page.locator('.intake-result').first();
+  await expect(result).toBeVisible();
+  // הודעה בתיבת הקליטה שהמשימה השנתית סומנה אוטומטית
+  await expect(result.getByText(/גם סומנה כהושלמה משימה שנתית/)).toBeVisible();
+
+  // ובעמוד המשימות השנתיות — המשימה מופיעה במדור "הושלמו" עם תג פיקוח
+  await page.getByRole('button', { name: /✅ משימות שנתיות/ }).click();
+  const taskItem = page.locator('.status-section.completed .task-item', { hasText: 'איסוף טופס 106 — טסט' });
+  await expect(taskItem).toBeVisible();
+  await expect(taskItem.getByText(/הושלם אוטומטית/)).toBeVisible();
+});

@@ -4,26 +4,25 @@ import { logActivity } from '../activity.js';
 
 const router = express.Router();
 
+// כל שאילתת רשימה מצרפת גם את שם המסמך שגרם להשלמה אוטומטית (completed_by_document_id),
+// כדי שה-frontend יוכל להציג "🤖 הושלם אוטומטית עקב מסמך X" בלי שאילתה נוספת.
+const SELECT_WITH_JOINS = `
+  SELECT c.*, e.name as entity_name, d.document_name as completed_by_document_name
+  FROM annual_checklist c
+  LEFT JOIN financial_entities e ON c.entity_id = e.id
+  LEFT JOIN documents d ON c.completed_by_document_id = d.id
+`;
+
 // Get checklist for year
 router.get('/year/:year', (req, res) => {
-  const checklist = getAll(`
-    SELECT c.*, e.name as entity_name FROM annual_checklist c
-    LEFT JOIN financial_entities e ON c.entity_id = e.id
-    WHERE c.year = ?
-    ORDER BY c.task_category, c.required_date
-  `, [parseInt(req.params.year)]);
+  const checklist = getAll(`${SELECT_WITH_JOINS} WHERE c.year = ? ORDER BY c.task_category, c.required_date`, [parseInt(req.params.year)]);
   res.json(checklist);
 });
 
 // Get current year checklist
 router.get('/current', (req, res) => {
   const year = new Date().getFullYear();
-  const checklist = getAll(`
-    SELECT c.*, e.name as entity_name FROM annual_checklist c
-    LEFT JOIN financial_entities e ON c.entity_id = e.id
-    WHERE c.year = ?
-    ORDER BY c.required_date
-  `, [year]);
+  const checklist = getAll(`${SELECT_WITH_JOINS} WHERE c.year = ? ORDER BY c.required_date`, [year]);
   res.json(checklist);
 });
 
@@ -64,21 +63,26 @@ router.post('/', (req, res) => {
 });
 
 // Update checklist task
+// auto_completed: כמו documents.auto_filed — נשלח מפורשות (0) רק כשהמשתמש מאשר/מבטל
+// ידנית תיוק אוטומטי; אחרת COALESCE משאיר את הדגל כפי שהוא (לא נדרס בעדכונים רגילים).
 router.put('/:id', (req, res) => {
-  const { task_name, task_category, required_date, completed_date, status, notes, assignee } = req.body;
+  const { task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed } = req.body;
 
   const result = runQuery(
     `UPDATE annual_checklist
-     SET task_name = ?, task_category = ?, required_date = ?, completed_date = ?, status = ?, notes = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP
+     SET task_name = ?, task_category = ?, required_date = ?, completed_date = ?, status = ?, notes = ?, assignee = ?,
+         auto_completed = COALESCE(?, auto_completed),
+         completed_by_document_id = CASE WHEN ? = 'completed' THEN completed_by_document_id ELSE NULL END,
+         updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [task_name, task_category, required_date, completed_date, status, notes, assignee, parseInt(req.params.id)]
+    [task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed, status, parseInt(req.params.id)]
   );
 
   if (!result.success) {
     return res.status(500).json({ error: result.error });
   }
 
-  const updated = getOne('SELECT * FROM annual_checklist WHERE id = ?', [parseInt(req.params.id)]);
+  const updated = getOne(`${SELECT_WITH_JOINS} WHERE c.id = ?`, [parseInt(req.params.id)]);
   if (updated) {
     const label = updated.status === 'completed' ? 'הושלמה משימה' : 'עודכנה משימה';
     logActivity('update', 'task', updated.id, `${label} "${updated.task_name}"`);

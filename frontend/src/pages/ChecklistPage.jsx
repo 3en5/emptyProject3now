@@ -17,6 +17,7 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
   const [formData, setFormData] = useState(EMPTY_TASK);
 
   // סימון הושלם/ממתין — שולח את המשימה המלאה (PUT דורס שדות חסרים)
+  // auto_completed: 0 — זו פעולה ידנית, לא הדגל האוטומטי; מנקה אותו אם היה דלוק
   const toggleComplete = (task) => {
     const completed = task.status === 'completed';
     const today = new Date().toISOString().slice(0, 10);
@@ -24,7 +25,13 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       ...task,
       status: completed ? 'pending' : 'completed',
       completed_date: completed ? null : today,
+      auto_completed: 0,
     });
+  };
+
+  // אישור פיקוח בלחיצה אחת — "ההשלמה האוטומטית נכונה" (משאיר completed, רק מנקה את הדגל)
+  const confirmAutoCompleted = (task) => {
+    onUpdate(task.id, { ...task, auto_completed: 0 });
   };
 
   const handleDelete = (task) => {
@@ -239,6 +246,12 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                         <h3>{task.task_name}</h3>
                         {task.task_category && <span className="badge">{task.task_category}</span>}
                         {task.completed_date && <span className="badge date">הושלם: {new Date(task.completed_date).toLocaleDateString('he-IL')}</span>}
+                        {!!task.auto_completed && (
+                          <span className="auto-completed-badge">
+                            🤖 הושלם אוטומטית{task.completed_by_document_name && <> עקב מסמך: <strong>{task.completed_by_document_name}</strong></>}
+                            {!readOnly && <button className="btn btn-success" onClick={() => confirmAutoCompleted(task)}>✓ אשר</button>}
+                          </span>
+                        )}
                       </div>
                       {!readOnly && (
                         <div className="task-actions">

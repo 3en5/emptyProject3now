@@ -47,14 +47,15 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256) + העלאה/הורדה (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file`) | `/api/documents` |
 | `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/מועד/ביטחון + `suggestedType`; תומך בעברית הפוכה |
 | `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך. פעיל רק עם `OPENAI_API_KEY` |
 | `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate`. `matchEntity` מתאם שם-issuer חופשי מ-GPT לגוף קיים דרך טביעות-האצבע של `classify.js` (לא substring גולמי — ראה LESSONS #7) |
-| `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
+| `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס. `SELECT_WITH_JOINS` מצרף שם המסמך שהשלים אוטומטית | `/api/checklists` |
+| `backend/checklistMatch.js` | התאמת מסמך שהתקבל למשימה שנתית תואמת (טהורה): `matchChecklistTask` — לסימון "V" אוטומטי |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
@@ -127,14 +128,16 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/**summary+amounts+doc_date**) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**) |
+| `backend/test/checklistMatch.test.js` | טסטי יחידה ל-`matchChecklistTask` (טהורה) |
 | `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
 | `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
-| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, **תקציר/סכומים/תאריך מסמך** |
+| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית** |
+| `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך |
 | `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
@@ -189,6 +192,14 @@
 - Backend: `backend/routes/checklists.js`
 - Frontend: `pages/ChecklistPage.jsx`
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)
+
+### השלמה אוטומטית של משימה עקב מסמך שהתקבל
+**העיקרון: אם המערכת קלטה מסמך שממלא משימה שנתית (למשל "טופס 106"), היא מסמנת V לבד — המשתמש רק מפקח.**
+- התאמה: `backend/checklistMatch.js` (`matchChecklistTask`, טהורה) — ניקוד מול משימות פתוחות (`pending`/`in_progress`) של השנה הנוכחית: התאמת ביטוי מלא של סוג/שם המסמך **או** שם הגוף המנפיק בתוך `task_name`/`task_category`
+- הפעלה: `routes/documents.js` (`tryAutoCompleteChecklist`) — נקרא אחרי צירוף קובץ, גם ב-`POST /intake` וגם ב-`POST /:id/upload`; מחזיר `matchedTask` בתגובה
+- DB: `annual_checklist.auto_completed` + `completed_by_document_id` (מי סימן ולמה) — `routes/checklists.js` מצרף `completed_by_document_name` ב-JOIN
+- פיקוח: תג "🤖 הושלם אוטומטית עקב מסמך: X" + "✓ אשר" (`ChecklistPage.jsx`, מדור "הושלמו") — מנקה את הדגל בלי לשנות סטטוס; "↩️ החזר לממתין" מנקה גם את `completed_by_document_id`
+- הודעה בתיבת הקליטה: `IntakeBox.jsx` מציג "✔️ גם סומנה כהושלמה משימה שנתית: X" כשיש `matchedTask`
 
 ### ייצוא CSV (רשימת פעולות לרו"ח/הדפסה)
 - Backend: `backend/routes/export.js` (`/api/export/action-list.csv?year=YYYY`) — BOM ל-UTF-8, escaping

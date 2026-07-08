@@ -77,6 +77,26 @@
   background: var(--warning);
 }
 
+/* תג פיקוח: משימה שהושלמה אוטומטית עקב קליטת מסמך תואם */
+.auto-completed-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: #fff3e0;
+  border: 1px solid #f39c12;
+  color: #b9770e;
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.auto-completed-badge .btn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+}
+
 .assignee {
   white-space: nowrap;
   font-size: 0.9rem;
