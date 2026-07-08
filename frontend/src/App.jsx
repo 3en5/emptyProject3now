@@ -110,6 +110,19 @@ export default function App() {
     }
   };
 
+  const handleUploadDocument = async (id, file) => {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const response = await axios.post(`${API_URL}/documents/${id}/upload`, form);
+      setDocuments(documents.map(d => d.id === id ? response.data : d));
+      return response.data;
+    } catch (err) {
+      setError('שגיאה בהעלאת קובץ: ' + (err.response?.data?.error || err.message));
+      throw err;
+    }
+  };
+
   const handleAddChecklistTask = async (taskData) => {
     try {
       const response = await axios.post(`${API_URL}/checklists`, taskData);
@@ -219,6 +232,7 @@ export default function App() {
             onAdd={handleAddDocument}
             onUpdate={handleUpdateDocument}
             onDelete={handleDeleteDocument}
+            onUpload={handleUploadDocument}
           />
         )}
 

@@ -9,11 +9,26 @@ const EMPTY_DOC = {
   required_by_date: '',
 };
 
-export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete }) {
+export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload }) {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [editingId, setEditingId] = useState(null);
+  const [uploadingId, setUploadingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_DOC);
+
+  const handleFileChange = async (doc, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingId(doc.id);
+    try {
+      await onUpload(doc.id, file);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingId(null);
+      e.target.value = '';
+    }
+  };
 
   // עדכון סטטוס מהיר — שולח את המסמך המלא (PUT דורס שדות חסרים)
   const handleStatusChange = (doc, newStatus) => {
@@ -215,6 +230,26 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                   {doc.date_filed && (
                     <p><strong>הוגש:</strong> {new Date(doc.date_filed).toLocaleDateString('he-IL')}</p>
                   )}
+                  <p className="doc-file">
+                    <strong>קובץ:</strong>{' '}
+                    {doc.file_path ? (
+                      <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה בקובץ</a>
+                    ) : (
+                      <span className="no-file">אין קובץ מצורף</span>
+                    )}
+                  </p>
+                </div>
+                <div className="doc-upload">
+                  <label className="btn btn-small btn-upload">
+                    {uploadingId === doc.id ? '⏳ מעלה…' : (doc.file_path ? '🔄 החלף קובץ' : '📤 העלה קובץ')}
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      style={{ display: 'none' }}
+                      disabled={uploadingId === doc.id}
+                      onChange={(e) => handleFileChange(doc, e)}
+                    />
+                  </label>
                 </div>
                 <div className="doc-actions">
                   <select

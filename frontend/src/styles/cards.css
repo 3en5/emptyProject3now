@@ -99,6 +99,26 @@
   margin-bottom: 0.5rem;
 }
 
+.doc-file .no-file {
+  color: #999;
+  font-style: italic;
+}
+
+.doc-upload {
+  margin-top: 0.75rem;
+}
+
+.btn-upload {
+  display: inline-block;
+  background: #8e44ad;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-upload:hover {
+  background: #7d3c98;
+}
+
 .doc-actions {
   display: flex;
   gap: 0.75rem;

@@ -2,12 +2,17 @@
  * טסטי אינטגרציה ל-API. רצים מול DB בזיכרון (מבודד לחלוטין).
  * הרצה: npm test  (או: node --test backend/test)
  */
-import { test, before, beforeEach, describe } from 'node:test';
+import { test, before, beforeEach, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-// DB בזיכרון + השתקת לוגים — לפני כל import שנוגע ב-DB
+// DB בזיכרון + תיקיית העלאות זמנית + השתקת לוגים — לפני כל import שנוגע ב-DB
 process.env.FINANCE_DB_PATH = ':memory:';
 process.env.FINANCE_QUIET = '1';
+const TEST_UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'finance-uploads-'));
+process.env.FINANCE_UPLOAD_DIR = TEST_UPLOAD_DIR;
 
 const { init, getDatabase } = await import('../db/init.js');
 const { runQuery } = await import('../db/helper.js');
@@ -18,6 +23,10 @@ const app = createApp();
 
 before(async () => {
   await init();
+});
+
+after(() => {
+  fs.rmSync(TEST_UPLOAD_DIR, { recursive: true, force: true });
 });
 
 // ניקוי כל הטבלאות לפני כל טסט — כדי שיהיו בלתי-תלויים בסדר
@@ -184,6 +193,53 @@ describe('accounts', () => {
     await request(app).delete(`/api/accounts/${a.body.id}`);
     const list = await request(app).get('/api/accounts');
     assert.equal(list.body.length, 0);
+  });
+});
+
+describe('document file upload', () => {
+  let entityId;
+  let docId;
+  beforeEach(async () => {
+    const e = await request(app).post('/api/entities').send({ name: 'גוף', type: 'investment' });
+    entityId = e.body.id;
+    const d = await request(app).post('/api/documents').send({ entity_id: entityId, document_name: '867' });
+    docId = d.body.id;
+  });
+
+  test('POST /:id/upload מצרף קובץ ומעדכן file_path', async () => {
+    const res = await request(app)
+      .post(`/api/documents/${docId}/upload`)
+      .attach('file', Buffer.from('%PDF-1.4 hello'), 'test.pdf');
+    assert.equal(res.status, 200);
+    assert.ok(res.body.file_path);
+    assert.match(res.body.file_path, /\.pdf$/);
+  });
+
+  test('GET /:id/file מחזיר את הקובץ שהועלה', async () => {
+    await request(app).post(`/api/documents/${docId}/upload`).attach('file', Buffer.from('%PDF-1.4 hello'), 'test.pdf');
+    const res = await request(app).get(`/api/documents/${docId}/file`).buffer(true);
+    assert.equal(res.status, 200);
+    const body = res.text || (Buffer.isBuffer(res.body) ? res.body.toString() : '');
+    assert.match(body, /hello/);
+  });
+
+  test('GET /:id/file בלי קובץ מחזיר 404', async () => {
+    const res = await request(app).get(`/api/documents/${docId}/file`);
+    assert.equal(res.status, 404);
+  });
+
+  test('סוג קובץ לא נתמך נדחה (400)', async () => {
+    const res = await request(app)
+      .post(`/api/documents/${docId}/upload`)
+      .attach('file', Buffer.from('bad'), 'virus.exe');
+    assert.equal(res.status, 400);
+  });
+
+  test('העלאה למסמך לא קיים מחזירה 404', async () => {
+    const res = await request(app)
+      .post('/api/documents/99999/upload')
+      .attach('file', Buffer.from('%PDF'), 'x.pdf');
+    assert.equal(res.status, 404);
   });
 });
 

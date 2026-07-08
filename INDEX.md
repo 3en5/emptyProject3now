@@ -37,7 +37,8 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס + העלאת/הורדת קובץ (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
@@ -125,6 +126,11 @@
 - Backend: `backend/routes/documents.js`
 - Frontend: `pages/DocumentPage.jsx`
 - סטטוסים/צבעים: מוגדרים בתוך `DocumentPage.jsx` (`getStatusBadge`, `getStatusColor`)
+
+### העלאת קבצים למסמכים
+- Backend: `backend/upload.js` (multer) + endpoints `/:id/upload` ו-`/:id/file` ב-`routes/documents.js`
+- Frontend: כפתור העלאה + קישור צפייה ב-`DocumentPage.jsx`; handler `handleUploadDocument` ב-`App.jsx`
+- אחסון: `backend/uploads/` (ב-`.gitignore`). שם קובץ: `doc_<id>_<timestamp>.<ext>`
 
 ### משימות שנתיות
 - Backend: `backend/routes/checklists.js`

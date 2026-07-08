@@ -69,6 +69,18 @@ test('עריכת מסמך קיים משנה את שמו', async ({ page }) => {
   await expect(page.getByText('שם מעודכן בבדיקה')).toBeVisible();
 });
 
+test('העלאת קובץ PDF למסמך ואז קישור צפייה', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  const firstCard = page.locator('.document-card').first();
+  await firstCard.locator('input[type="file"]').setInputFiles({
+    name: 'report.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4 e2e test file'),
+  });
+  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

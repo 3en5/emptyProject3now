@@ -1,5 +1,8 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { runQuery, getOne, getAll } from '../db/helper.js';
+import { upload, UPLOAD_DIR } from '../upload.js';
 
 const router = express.Router();
 
@@ -83,9 +86,63 @@ router.put('/:id', (req, res) => {
   res.json(updated);
 });
 
-// Delete document
+// Upload a file (PDF/image) and attach it to a document
+router.post('/:id/upload', (req, res) => {
+  const id = parseInt(req.params.id);
+  const doc = getOne('SELECT * FROM documents WHERE id = ?', [id]);
+  if (!doc) {
+    return res.status(404).json({ error: 'Document not found' });
+  }
+
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'לא נשלח קובץ' });
+    }
+
+    // מחיקת הקובץ הישן אם קיים
+    if (doc.file_path) {
+      const old = path.join(UPLOAD_DIR, path.basename(doc.file_path));
+      if (fs.existsSync(old)) {
+        try { fs.unlinkSync(old); } catch { /* ignore */ }
+      }
+    }
+
+    const result = runQuery('UPDATE documents SET file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.file.filename, id]);
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+    const updated = getOne('SELECT * FROM documents WHERE id = ?', [id]);
+    res.json(updated);
+  });
+});
+
+// Serve/download the attached file
+router.get('/:id/file', (req, res) => {
+  const doc = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
+  if (!doc || !doc.file_path) {
+    return res.status(404).json({ error: 'אין קובץ מצורף' });
+  }
+  const filePath = path.join(UPLOAD_DIR, path.basename(doc.file_path));
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'הקובץ לא נמצא בשרת' });
+  }
+  res.sendFile(filePath);
+});
+
+// Delete document (+ its file if any)
 router.delete('/:id', (req, res) => {
-  runQuery('DELETE FROM documents WHERE id = ?', [parseInt(req.params.id)]);
+  const id = parseInt(req.params.id);
+  const doc = getOne('SELECT * FROM documents WHERE id = ?', [id]);
+  if (doc && doc.file_path) {
+    const f = path.join(UPLOAD_DIR, path.basename(doc.file_path));
+    if (fs.existsSync(f)) {
+      try { fs.unlinkSync(f); } catch { /* ignore */ }
+    }
+  }
+  runQuery('DELETE FROM documents WHERE id = ?', [id]);
   res.json({ message: 'Document deleted successfully' });
 });
 

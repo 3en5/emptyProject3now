@@ -17,6 +17,9 @@ node_modules/
 /backend/db/finance.db
 *.db
 
+# Uploaded files
+/backend/uploads/
+
 # Env
 .env
 .env.local
