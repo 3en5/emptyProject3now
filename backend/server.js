@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, getDatabase } from './db/init.js';
+import { init } from './db/init.js';
 import entitiesRouter from './routes/entities.js';
 import accountsRouter from './routes/accounts.js';
 import documentsRouter from './routes/documents.js';
@@ -36,7 +36,7 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-initDatabase()
+init()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

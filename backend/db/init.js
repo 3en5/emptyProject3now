@@ -1,4 +1,4 @@
-import sqlite3 from 'sqlite3';
+import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,64 +7,85 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dbPath = path.join(__dirname, 'finance.db');
-let dbInstance = null;
+let SQL = null;
+let db = null;
 
-export function initDatabase() {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+async function initDatabase() {
+  try {
+    SQL = await initSqlJs();
 
-      // Read and execute schema
-      const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    // Load existing database or create new one
+    if (fs.existsSync(dbPath)) {
+      const filebuffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(filebuffer);
+    } else {
+      db = new SQL.Database();
+    }
 
-      // Split schema into individual statements and execute
-      db.exec(schema, (err) => {
-        if (err) {
-          reject(err);
-          return;
+    // Read and execute schema
+    const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+
+    // Execute schema statements
+    const statements = schema.split(';').filter(s => s.trim());
+    for (const stmt of statements) {
+      if (stmt.trim()) {
+        try {
+          db.run(stmt);
+        } catch (e) {
+          // Ignore "already exists" errors
+          if (!e.message.includes('already exists')) {
+            console.error('Schema error:', e.message);
+          }
         }
+      }
+    }
 
-        // Insert default user if doesn't exist
-        db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+    // Insert default user if doesn't exist
+    try {
+      const users = db.exec('SELECT COUNT(*) as count FROM users');
+      if (!users || !users[0] || users[0].values[0][0] === 0) {
+        db.run('INSERT INTO users (name, email, role) VALUES (?, ?, ?)',
+          ['Admin User', 'admin@local', 'admin']);
+      }
+    } catch (e) {
+      // Table might not exist yet
+    }
 
-          if (row.count === 0) {
-            db.run(
-              'INSERT INTO users (name, email, role) VALUES (?, ?, ?)',
-              ['Admin User', 'admin@local', 'admin'],
-              (err) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-                console.log('✅ Database initialized at:', dbPath);
-                dbInstance = db;
-                resolve(db);
-              }
-            );
-          } else {
-            console.log('✅ Database already initialized at:', dbPath);
-            dbInstance = db;
-            resolve(db);
-          }
-        });
-      });
-    });
+    // Save database
+    saveDatabase();
 
-    db.configure('busyTimeout', 5000);
-  });
+    console.log('✅ Database initialized at:', dbPath);
+    return db;
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    throw error;
+  }
+}
+
+function saveDatabase() {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+  }
 }
 
 export function getDatabase() {
-  if (!dbInstance) {
-    dbInstance = new sqlite3.Database(dbPath);
-    dbInstance.configure('busyTimeout', 5000);
+  if (!db) {
+    throw new Error('Database not initialized. Call initDatabase first.');
   }
-  return dbInstance;
+  return db;
 }
+
+export function getDatabaseSQL() {
+  if (!SQL) {
+    throw new Error('SQL not initialized. Call initDatabase first.');
+  }
+  return SQL;
+}
+
+export async function init() {
+  return await initDatabase();
+}
+
+export { saveDatabase };
