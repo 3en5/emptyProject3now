@@ -8,10 +8,16 @@ function rowToObject(columns, values) {
   return obj;
 }
 
+// sql.js לא יודע לקשור undefined — רק null/number/string.
+// ממירים כל undefined ל-null לפני קשירה (שדות שלא נשלחו בבקשה).
+function sanitize(params) {
+  return (params || []).map(p => (p === undefined ? null : p));
+}
+
 export function runQuery(sql, params = []) {
   const db = getDatabase();
   try {
-    db.run(sql, params);
+    db.run(sql, sanitize(params));
     saveDatabase();
 
     // Get last inserted ID
@@ -35,7 +41,7 @@ export function runQuery(sql, params = []) {
 export function getOne(sql, params = []) {
   const db = getDatabase();
   try {
-    const result = db.exec(sql, params);
+    const result = db.exec(sql, sanitize(params));
     if (result && result[0] && result[0].values && result[0].values.length > 0) {
       const columns = result[0].columns;
       const row = result[0].values[0];
@@ -51,7 +57,7 @@ export function getOne(sql, params = []) {
 export function getAll(sql, params = []) {
   const db = getDatabase();
   try {
-    const result = db.exec(sql, params);
+    const result = db.exec(sql, sanitize(params));
     if (result && result[0]) {
       const columns = result[0].columns;
       return result[0].values.map(row => rowToObject(columns, row));

@@ -12,8 +12,7 @@
 
 | קובץ | תפקיד |
 |------|-------|
-| `package.json` | הגדרות ה-backend: תלויות (express, sql.js, cors), סקריפטים (`start`, `dev`, `setup`) |
-| `vite.config.js` | הגדרות Vite ל-frontend: port 5173, proxy מ-`/api` ל-`localhost:3001` |
+| `package.json` | הגדרות ה-backend: תלויות (express, sql.js, cors), סקריפטים (`start`, `dev`, `seed`, `setup`) |
 | `README.md` | תיעוד כללי למשתמש: מה המערכת, איך מתקינים ומריצים, רשימת API endpoints |
 | `CLAUDE.md` | כללי העבודה של Claude על הפרויקט (מוסכמות קוד, Git, מבנה) |
 | `INDEX.md` | הקובץ הזה — מפת הקבצים |
@@ -29,7 +28,8 @@
 |------|-------|
 | `backend/db/schema.sql` | הגדרת כל הטבלאות והאינדקסים. **כאן משנים מבנה נתונים** (עמודות, טבלאות) |
 | `backend/db/init.js` | אתחול ה-DB: טעינת/יצירת הקובץ, הרצת הסכימה, שמירה לדיסק (`saveDatabase`) |
-| `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll`. **כל שאילתה עוברת דרך כאן** |
+| `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן** |
+| `backend/db/seed.js` | זריעת מצאי אמיתי (18 גופים, מסמכים מצופים, משימות תב"ר). הרצה: `npm run seed`. ⚠️ מוחק נתונים קיימים |
 
 ### Backend — API Routes (`backend/routes/`)
 
@@ -47,6 +47,7 @@
 |------|-------|
 | `frontend/index.html` | דף ה-HTML הראשי, `dir="rtl"`, טוען את `main.jsx` |
 | `frontend/package.json` | תלויות ה-frontend: react, react-dom, axios, vite |
+| `frontend/vite.config.js` | הגדרות Vite: port 5173, proxy מ-`/api` ל-`localhost:3001`. **חייב להיות ב-`frontend/`** (Vite רץ משם) |
 | `frontend/src/main.jsx` | נקודת הכניסה של React — מרנדר את `App` ל-DOM |
 | `frontend/src/App.jsx` | הרכיב הראשי: ניהול state גלובלי, כל קריאות ה-API, ניתוב בין עמודים |
 | `frontend/src/index.css` | נקודת כניסה לעיצוב — מייבא (`@import`) את כל ה-partials מ-`styles/` |

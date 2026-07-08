@@ -8,6 +8,7 @@
     "start": "node backend/server.js",
     "dev": "node --watch backend/server.js",
     "client": "cd frontend && npm run dev",
+    "seed": "node backend/db/seed.js",
     "setup": "npm install && cd frontend && npm install"
   },
   "keywords": [
