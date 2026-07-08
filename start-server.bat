@@ -1,12 +1,12 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
-REM הפעלה מהירה של השרת (מניח שכבר הורץ run-local.bat פעם אחת לבנייה)
+REM Fast daily start - assumes run-local.bat already built the app once.
 if not exist "frontend\dist\index.html" (
-  echo [מידע] הממשק עדיין לא נבנה — מריץ בנייה מלאה פעם אחת...
+  echo [INFO] Frontend not built yet - running full setup once...
   call "%~dp0run-local.bat"
   exit /b
 )
+echo Starting server at http://localhost:3018
 set PORT=3018
 set FINANCE_QUIET=1
 node backend/server.js
