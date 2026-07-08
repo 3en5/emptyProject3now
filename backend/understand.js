@@ -6,6 +6,7 @@
 import { extractText } from './extract.js';
 import { classifyText, ISSUERS } from './classify.js';
 import { understandWithGPT, gptAvailable } from './gpt.js';
+import { matchOwner } from './ownerMatch.js';
 
 // התאמה ישירה: הכלה הדדית בין שם הגוף שזוהה לשם הגוף ב-DB (case-insensitive).
 function directMatch(nameLower, entities) {
@@ -40,8 +41,9 @@ function matchEntity(issuerName, entities) {
 }
 
 // ממיר את פלט GPT (issuerName/docType/entityType/...) למבנה ההצעות של classifyText.
-// summary/amounts/docDate — בונוס שרק ל-GPT יש (הכללים לא מנתחים תוכן חופשי).
+// summary/amounts/docDate/personName — בונוס שרק ל-GPT יש (הכללים לא מנתחים תוכן חופשי).
 function aiToSuggestions(c, entities) {
+  const personName = c.personName || null;
   return {
     issuer: c.issuerName
       ? { name: c.issuerName, entityId: matchEntity(c.issuerName, entities), suggestedType: c.entityType || null }
@@ -52,6 +54,10 @@ function aiToSuggestions(c, entities) {
     renewalDate: c.renewalDate || null,
     summary: c.summary || null,
     amounts: Array.isArray(c.amounts) ? c.amounts : [],
+    personName,
+    // עבור מי המסמך — התאמה לשמות המוגדרים ב-.env (FINANCE_USER_NAME/FINANCE_SPOUSE_NAME).
+    // אין הגדרה/התאמה → null, והמשתמש בוחר ידנית.
+    ownerGuess: matchOwner(personName, { userName: process.env.FINANCE_USER_NAME, spouseName: process.env.FINANCE_SPOUSE_NAME }),
     confidence: c.confidence || 'low',
     matchedTerms: [],
   };

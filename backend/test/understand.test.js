@@ -170,4 +170,35 @@ describe('understandDocument — היברידי', () => {
     assert.equal(r.issuer.name, 'עמותת דוגמה');
     assert.equal(r.issuer.suggestedType, 'donation');
   });
+
+  test('personName מזוהה ומועבר, ומותאם ל-ownerGuess לפי FINANCE_USER_NAME/SPOUSE_NAME', async () => {
+    const prevUser = process.env.FINANCE_USER_NAME;
+    const prevSpouse = process.env.FINANCE_SPOUSE_NAME;
+    process.env.FINANCE_USER_NAME = 'ישראל ישראלי';
+    process.env.FINANCE_SPOUSE_NAME = 'דנה כהן';
+    try {
+      const aiFn = async () => ({
+        issuerName: 'המוסד לביטוח לאומי', docType: 'טופס 106', entityType: 'other',
+        year: 2025, renewalDate: '', personName: 'דנה כהן', confidence: 'high',
+      });
+      const file = write('form106.pdf', makePdf('unrecognized scanned content xyz'));
+      const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+      assert.equal(r.personName, 'דנה כהן');
+      assert.equal(r.ownerGuess, 'spouse');
+    } finally {
+      process.env.FINANCE_USER_NAME = prevUser;
+      process.env.FINANCE_SPOUSE_NAME = prevSpouse;
+    }
+  });
+
+  test('בלי personName → ownerGuess null, לא קורס', async () => {
+    const aiFn = async () => ({
+      issuerName: 'IBKR', docType: 'Annual Activity Statement', entityType: 'investment',
+      year: 2025, renewalDate: '', confidence: 'high',
+    });
+    const file = write('no-person.pdf', makePdf('unrecognized scanned content xyz'));
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.personName, null);
+    assert.equal(r.ownerGuess, null);
+  });
 });

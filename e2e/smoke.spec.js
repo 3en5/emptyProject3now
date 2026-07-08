@@ -109,7 +109,7 @@ test('קליטה חכמה: מסמך לא מזוהה נקלט ל"ממתין לש�
   const result = page.locator('.intake-result').first();
   await expect(result.getByText(/לא זוהה גוף — נא לשייך/)).toBeVisible();
   // פיקוח: שיוך לגוף הנכון + שם ידני → אישור
-  await result.locator('select').selectOption({ label: 'IBKR' });
+  await result.locator('select.entity-select').selectOption({ label: 'IBKR' });
   await result.locator('input[type="text"]').fill('מסמך משויך ידנית');
   await result.getByRole('button', { name: /אשר ושמור/ }).click();
   await expect(result.getByText(/אושר ונשמר/)).toBeVisible();

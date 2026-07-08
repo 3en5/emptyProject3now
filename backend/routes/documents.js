@@ -121,7 +121,7 @@ router.post('/', (req, res) => {
 
 // Update document
 router.put('/:id', (req, res) => {
-  const { document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, doc_date, summary, amounts } = req.body;
+  const { document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, doc_date, summary, amounts, owner } = req.body;
   // amounts מגיע מה-frontend כמערך — נשמר ב-DB כ-JSON string. undefined → לא לדרוס (COALESCE).
   const amountsJson = amounts !== undefined ? JSON.stringify(amounts) : undefined;
 
@@ -130,9 +130,10 @@ router.put('/:id', (req, res) => {
      SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?,
          entity_id = COALESCE(?, entity_id), auto_filed = COALESCE(?, auto_filed),
          doc_date = COALESCE(?, doc_date), summary = COALESCE(?, summary), amounts = COALESCE(?, amounts),
+         owner = COALESCE(?, owner),
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, doc_date, summary, amountsJson, parseInt(req.params.id)]
+    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, doc_date, summary, amountsJson, owner, parseInt(req.params.id)]
   );
 
   if (!result.success) {
@@ -204,9 +205,10 @@ router.post('/intake', (req, res) => {
           `UPDATE documents
            SET file_path = ?, file_hash = ?, year = COALESCE(year, ?), required_by_date = COALESCE(required_by_date, ?),
                doc_date = COALESCE(doc_date, ?), summary = COALESCE(summary, ?), amounts = COALESCE(amounts, ?),
+               owner = COALESCE(owner, ?),
                auto_filed = 1, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
-          [req.file.filename, hash, suggestions.year, suggestions.renewalDate, suggestions.docDate, suggestions.summary, amountsJson, docId]
+          [req.file.filename, hash, suggestions.year, suggestions.renewalDate, suggestions.docDate, suggestions.summary, amountsJson, suggestions.ownerGuess, docId]
         );
         logActivity('update', 'document', docId, `נקלט קובץ ותויק אוטומטית אל "${decision.target.document_name}"`);
       } else {
@@ -229,9 +231,9 @@ router.post('/intake', (req, res) => {
           || 'מסמך שנקלט';
         runQuery(
           `INSERT INTO documents
-           (entity_id, document_name, document_type, year, required_by_date, file_path, file_hash, auto_filed, notes, doc_date, summary, amounts)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-          [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, hash, 'נקלט אוטומטית דרך תיבת הקליטה', suggestions.docDate, suggestions.summary, amountsJson]
+           (entity_id, document_name, document_type, year, required_by_date, file_path, file_hash, auto_filed, notes, doc_date, summary, amounts, owner)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+          [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, hash, 'נקלט אוטומטית דרך תיבת הקליטה', suggestions.docDate, suggestions.summary, amountsJson, suggestions.ownerGuess]
         );
         const created = getOne('SELECT id FROM documents ORDER BY id DESC LIMIT 1');
         docId = created.id;

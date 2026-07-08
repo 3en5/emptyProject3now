@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS documents (
   doc_date DATE,                 -- התאריך שמופיע על המסמך עצמו (זוהה ע"י GPT)
   summary TEXT,                  -- תקציר קצר של המסמך (זוהה ע"י GPT)
   amounts TEXT,                  -- סכומים שזוהו במסמך, כ-JSON array של מחרוזות
+  owner TEXT,                    -- עבור מי המסמך: 'user' | 'spouse' | NULL (לא ידוע)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (entity_id) REFERENCES financial_entities(id)

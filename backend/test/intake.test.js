@@ -251,6 +251,32 @@ describe('תקציר, סכומים ותאריך מסמך (summary/amounts/doc_da
   });
 });
 
+describe('עבור מי המסמך (owner)', () => {
+  test('PUT שומר owner, ו-GET מחזיר אותו', async () => {
+    await request(app).post('/api/entities').send({ name: 'המוסד לביטוח לאומי', type: 'other' });
+    const ent = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    const created = await request(app).post('/api/documents').send({ entity_id: ent.id, document_name: 'טופס 106', year: 2025 });
+
+    const res = await request(app).put(`/api/documents/${created.body.id}`).send({ ...created.body, owner: 'spouse' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.owner, 'spouse');
+
+    const list = await request(app).get('/api/documents');
+    const found = list.body.find((d) => d.id === created.body.id);
+    assert.equal(found.owner, 'spouse');
+  });
+
+  test('PUT בלי owner לא דורס ערך קיים (COALESCE)', async () => {
+    await request(app).post('/api/entities').send({ name: 'הראל ביטוח 2', type: 'insurance' });
+    const ent = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    const created = await request(app).post('/api/documents').send({ entity_id: ent.id, document_name: 'פוליסה', year: 2025 });
+    await request(app).put(`/api/documents/${created.body.id}`).send({ ...created.body, owner: 'user' });
+
+    const res = await request(app).put(`/api/documents/${created.body.id}`).send({ document_name: 'פוליסה', status: 'submitted' });
+    assert.equal(res.body.owner, 'user'); // לא נדרס
+  });
+});
+
 describe('השלמה אוטומטית של משימה שנתית עקב מסמך שהתקבל', () => {
   test('קליטת "טופס 106" מסמנת אוטומטית את המשימה "איסוף טופס 106" כהושלמה', async () => {
     const year = new Date().getFullYear();

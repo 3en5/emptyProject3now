@@ -4,6 +4,7 @@ import { getUrgency, urgencyMeta } from '../utils/deadlines';
 import { useReadOnly } from '../ReadOnlyContext';
 import IntakeBox from '../components/IntakeBox';
 import DocumentForm from '../components/DocumentForm';
+import { OWNER_OPTIONS, OWNER_LABEL } from '../constants/owner';
 
 const EMPTY_DOC = {
   entity_id: '',
@@ -11,6 +12,7 @@ const EMPTY_DOC = {
   document_type: '',
   required_frequency: 'yearly',
   required_by_date: '',
+  owner: '',
 };
 
 // עמוד המסמכים.
@@ -25,6 +27,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   const [dragOverId, setDragOverId] = useState(null);
   const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
   const [editDate, setEditDate] = useState(''); // מועד חידוש שזוהה — ניתן לתיקון בתיבת הזיהוי
+  const [editOwner, setEditOwner] = useState(''); // עבור מי המסמך — ניתן לתיקון בתיבת הזיהוי
   const [formData, setFormData] = useState(EMPTY_DOC);
   const [expandedIds, setExpandedIds] = useState(new Set()); // כרטיסים מתקפלים — ברירת מחדל: מקופל
 
@@ -43,6 +46,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       const res = await axios.post(`/api/documents/${doc.id}/analyze`);
       setAnalysis({ docId: doc.id, ...res.data });
       setEditDate(res.data.suggestions?.renewalDate || doc.required_by_date || '');
+      setEditOwner(res.data.suggestions?.ownerGuess || doc.owner || '');
       setExpandedIds((prev) => new Set(prev).add(doc.id)); // מציגים את תיבת הניתוח — פותחים את הכרטיס
     } catch (err) {
       console.error(err);
@@ -59,6 +63,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       doc_date: s.docDate || doc.doc_date,
       summary: s.summary || doc.summary,
       amounts: s.amounts?.length ? s.amounts : doc.amounts,
+      owner: editOwner || doc.owner, // עבור מי (המתוקן) נשמר
       auto_filed: 0, // המשתמש פיקח ואישר
     });
     setAnalysis(null);
@@ -112,6 +117,11 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   // אישור פיקוח בלחיצה אחת — "התיוק האוטומטי נכון"
   const confirmAutoFiled = (doc) => {
     onUpdate(doc.id, { ...doc, auto_filed: 0 });
+  };
+
+  // שינוי "עבור מי" ישירות מהכרטיס (בלי לעבור דרך ניתוח)
+  const handleOwnerChange = (doc, newOwner) => {
+    onUpdate(doc.id, { ...doc, owner: newOwner });
   };
 
   const handleDelete = (doc) => {
@@ -252,6 +262,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       {getStatusBadge(doc.status)}
                     </span>
                     {doc.entity_name && <span className="entity-badge">{doc.entity_name}</span>}
+                    {doc.owner && <span className="owner-badge">{OWNER_LABEL[doc.owner]}</span>}
                     {!!doc.auto_filed && <span className="auto-filed-dot" title="ממתין לאישור — תויק אוטומטית">🤖</span>}
                   </span>
                   <span className="collapse-chevron">{expanded ? '▲' : '▼'}</span>
@@ -260,6 +271,18 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                 <>
                 <div className="doc-info">
                   <p><strong>גוף:</strong> {doc.entity_name}</p>
+                  {!readOnly ? (
+                    <p className="doc-owner-row">
+                      <strong>עבור מי:</strong>{' '}
+                      <select className="owner-select" value={doc.owner || ''} onChange={(e) => handleOwnerChange(doc, e.target.value)}>
+                        {OWNER_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </p>
+                  ) : (
+                    doc.owner && <p><strong>עבור מי:</strong> {OWNER_LABEL[doc.owner]}</p>
+                  )}
                   {doc.document_type && <p><strong>סוג:</strong> {doc.document_type}</p>}
                   {doc.year && <p><strong>שנה:</strong> {doc.year}</p>}
                   {doc.required_by_date && (
@@ -352,6 +375,15 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       {analysis.suggestions.summary && (
                         <li>📝 תקציר: <strong>{analysis.suggestions.summary}</strong></li>
                       )}
+                      <li className="analysis-owner">
+                        עבור מי:{' '}
+                        <select value={editOwner} onChange={(e) => setEditOwner(e.target.value)}>
+                          {OWNER_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        {analysis.suggestions.personName && <span className="analysis-detected">✓ זוהה שם: {analysis.suggestions.personName}</span>}
+                      </li>
                       {analysis.suggestions.amounts?.length > 0 && (
                         <li>
                           💰 סכומים:

@@ -47,13 +47,14 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file`) | `/api/documents` |
 | `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/מועד/ביטחון + `suggestedType`; תומך בעברית הפוכה |
-| `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך. פעיל רק עם `OPENAI_API_KEY` |
-| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate`. `matchEntity` מתאם שם-issuer חופשי מ-GPT לגוף קיים דרך טביעות-האצבע של `classify.js` (לא substring גולמי — ראה LESSONS #7) |
+| `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך/**personName** (שם האדם שהמסמך נוגע אליו). פעיל רק עם `OPENAI_API_KEY` |
+| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate`/`personName`/**`ownerGuess`**. `matchEntity` מתאם שם-issuer חופשי מ-GPT לגוף קיים דרך טביעות-האצבע של `classify.js` (לא substring גולמי — ראה LESSONS #7) |
+| `backend/ownerMatch.js` | התאמת שם אדם שזוהה על מסמך ("דנה כהן") לבן-בית מוגדר (טהורה): `matchOwner(personName, {userName, spouseName})` → `'user'`/`'spouse'`/`null`. השמות דרך `.env` (`FINANCE_USER_NAME`/`FINANCE_SPOUSE_NAME`); בלי הגדרה/התאמה → `null` (המשתמש בוחר ידנית) |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס. `SELECT_WITH_JOINS` מצרף שם המסמך שהשלים אוטומטית | `/api/checklists` |
 | `backend/checklistMatch.js` | התאמת מסמך שהתקבל למשימה שנתית תואמת (טהורה): `matchChecklistTask` — לסימון "V" אוטומטי |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
@@ -98,8 +99,9 @@
 |------|-------|
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
 | `frontend/src/components/Dashboard.jsx` | עמוד הבית: תיבת הקליטה, מדור "תויקו אוטומטית — לאישור", סטטיסטיקות, גופים לפי סוג, ממתינים, ועדכון תוכנה |
-| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity` |
+| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity`; שדה **"עבור מי"** (`OWNER_OPTIONS`) ממולא מ-`ownerGuess`, עם רמז לשם שזוהה (`personName`) |
 | `frontend/src/constants/entityTypes.js` | `ENTITY_TYPES` — מקור אמת יחיד לסוגי גופים, כולל `donation` 🎗️ (משמש `EntityForm` ו-`IntakeBox`). ⚠️ עדיין יש מפות תווית/אייקון כפולות ב-`EntityList.jsx`, `Dashboard.jsx`, `ReportsPage.jsx`, `EntitiesPage.jsx` — סוג גוף חדש דורש עדכון בכולן |
+| `frontend/src/constants/owner.js` | `OWNER_OPTIONS`/`OWNER_LABEL` — מקור אמת יחיד ל"עבור מי" המסמך (`user`/`spouse`/ריק), משמש `IntakeBox.jsx` ו-`DocumentPage.jsx` |
 | `frontend/src/components/DocumentForm.jsx` | טופס הוספה/עריכה ידנית של מסמך (הדרך המשנית — ליצירת סלוט מתוכנן) |
 | `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
@@ -110,7 +112,7 @@
 | קובץ | תפקיד |
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
-| `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), **תצוגת רשימה מתקפלת** (`.documents-list`; כרטיס מקופל כברירת מחדל — שם/סטטוס/גוף/🤖 בכותרת; לחיצה פותחת פרטים+פעולות) — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס |
+| `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), **תצוגת רשימה מתקפלת** (`.documents-list`; כרטיס מקופל כברירת מחדל — שם/סטטוס/גוף/**תג בעלים (👤 אני/בן-זוג)**/🤖 בכותרת; לחיצה פותחת פרטים+פעולות) — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס, בורר "עבור מי" (ניתן לשינוי ישיר מהכרטיס, וגם מתוך תיבת הניתוח עם רמז לשם שזוהה) |
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
@@ -128,17 +130,18 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**) |
 | `backend/test/checklistMatch.test.js` | טסטי יחידה ל-`matchChecklistTask` (טהורה) |
-| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate** (פונקציית ה-AI מוזרקת, בלי רשת) |
+| `backend/test/ownerMatch.test.js` | טסטי יחידה ל-`matchOwner` (טהורה) — התאמת שם לבן-בית, חלקי שם, בלי הגדרה/התאמה → `null` |
+| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate/personName+ownerGuess** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
 | `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
-| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית** |
+| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית**, **שדה "עבור מי" + רמז שם שזוהה** |
 | `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך |
-| `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים** בתיבת הניתוח ובכרטיס) |
+| `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים**, **תג/בורר "עבור מי"** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
 | `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה ופיקוח |
@@ -177,7 +180,7 @@
 **העיקרון: מקום אחד לזרוק אליו מסמך. המערכת מבינה, מתייקת, והמשתמש רק מפקח.**
 - **הבנה היברידית** (`backend/understand.js`): כללים מקומיים תמיד רצים ראשונים (`extract.js`+`classify.js`, חינם ומיידי). **כשמוגדר `OPENAI_API_KEY` — GPT רץ תמיד** (לא רק בביטחון נמוך; ראה LESSONS #6 — דילוג-על-סמך-ביטחון-כללים חשוף להתאמות-שווא). הכללים משמשים גיבוי אם GPT נכשל (`aiError`)
 - כללים: ISSUERS/DOC_TYPES fingerprints (**מונחים ספציפיים בלבד** — לא מילים כלליות) + חילוץ שנה + **מועד חידוש** (מילות עוגן) + **עברית הפוכה** + `suggestedType`
-- GPT: `structured outputs` → `{issuerName, docType, entityType, year, docDate, renewalDate, summary, amounts, confidence}` (מודל `gpt-4o`, ניתן לעקיפה ב-`FINANCE_GPT_MODEL`). **summary/amounts/docDate בונוס בלעדי ל-GPT** — הכללים לא מפיקים אותם
+- GPT: `structured outputs` → `{issuerName, docType, entityType, year, docDate, renewalDate, summary, personName, amounts, confidence}` (מודל `gpt-4o`, ניתן לעקיפה ב-`FINANCE_GPT_MODEL`). **summary/amounts/docDate/personName בונוס בלעדי ל-GPT** — הכללים לא מפיקים אותם
 - **סטטוס גלוי:** `GET /api/system/ai-status` — האם המפתח מוגדר; באנר בתיבת הקליטה + תג "🤖 GPT / 📋 כללים" לכל מסמך (שקיפות: המשתמש רואה מיד אם GPT באמת רץ)
 - החלטת תיוק: `backend/intake.js` (`decideFiling`) — ניקוד מול סלוטים פנויים → תיוק לקיים / יצירת חדש / "ממתין לשיוך"
 - **זיהוי כפילויות:** `documents.file_hash` (SHA-256) — קובץ שכבר קיים מוחזר כ-`action: 'duplicate'` ולא מועלה שוב
@@ -200,6 +203,13 @@
 - DB: `annual_checklist.auto_completed` + `completed_by_document_id` (מי סימן ולמה) — `routes/checklists.js` מצרף `completed_by_document_name` ב-JOIN
 - פיקוח: תג "🤖 הושלם אוטומטית עקב מסמך: X" + "✓ אשר" (`ChecklistPage.jsx`, מדור "הושלמו") — מנקה את הדגל בלי לשנות סטטוס; "↩️ החזר לממתין" מנקה גם את `completed_by_document_id`
 - הודעה בתיבת הקליטה: `IntakeBox.jsx` מציג "✔️ גם סומנה כהושלמה משימה שנתית: X" כשיש `matchedTask`
+
+### עבור מי המסמך (owner — אני / בן-זוג)
+**העיקרון: זיהוי + אישור אנושי, כמו כל שאר הזיהויים במערכת — לא ניחוש שקט.**
+- DB: `documents.owner` (`'user'` / `'spouse'` / `NULL`)
+- זיהוי: `backend/gpt.js` מזהה `personName` (שם האדם על המסמך — עובד/ת בטופס 106, מבוטח/ת בפוליסה וכו') → `backend/ownerMatch.js` (`matchOwner`, טהורה) מתאם אותו ל-`FINANCE_USER_NAME`/`FINANCE_SPOUSE_NAME` מה-`.env`. בלי הגדרה או בלי התאמה → `null` (בחירה ידנית)
+- Backend: `understand.js` (`aiToSuggestions`) מחזיר `personName`+`ownerGuess`; `routes/documents.js` שומר `owner` דרך `PUT` (COALESCE) ו-`POST /intake` (מ-`ownerGuess`)
+- Frontend: `constants/owner.js` (`OWNER_OPTIONS`/`OWNER_LABEL`) — מקור אמת יחיד. `IntakeBox.jsx`: שדה "עבור מי" בשורת התוצאה + רמז "✓ זוהה שם: X". `DocumentPage.jsx`: תג בעלים בכותרת המקופלת, בורר בכרטיס הפתוח (שינוי ישיר, בלי לעבור דרך ניתוח), ובורר בתיבת הניתוח עם רמז לשם שזוהה
 
 ### ייצוא CSV (רשימת פעולות לרו"ח/הדפסה)
 - Backend: `backend/routes/export.js` (`/api/export/action-list.csv?year=YYYY`) — BOM ל-UTF-8, escaping

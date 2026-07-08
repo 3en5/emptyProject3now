@@ -165,4 +165,44 @@ describe('DocumentPage — זיהוי אוטומטי בכרטיס (החלפת ק
     const [, payload] = onUpdate.mock.calls[0];
     expect(payload.auto_filed).toBe(0);
   });
+
+  test('עבור מי המסמך: אחרי ניתוח מוצג רמז לשם שזוהה, ובחירה נשמרת עם "החל ושמור"', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        suggestions: { ...SUGGESTION.suggestions, personName: 'דנה כהן', ownerGuess: 'spouse' },
+        extractedChars: 42,
+        note: null,
+      },
+    });
+    const onUpload = vi.fn().mockResolvedValue({});
+    const onUpdate = vi.fn();
+    const { container } = render(
+      <DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={onUpload} />
+    );
+    await replaceFileOnCard(container, onUpload);
+
+    expect(await screen.findByText(/זוהה שם: דנה כהן/)).toBeInTheDocument();
+    const ownerSelect = container.querySelector('.analysis-owner select');
+    expect(ownerSelect.value).toBe('spouse'); // מולא אוטומטית מה-guess
+
+    fireEvent.click(screen.getByRole('button', { name: /החל ושמור/ }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    const [, payload] = onUpdate.mock.calls[0];
+    expect(payload.owner).toBe('spouse');
+  });
+
+  test('תג הבעלים מוצג בכותרת המקופלת, וניתן לשנות אותו ישירות מהכרטיס הפתוח', () => {
+    const onUpdate = vi.fn();
+    const docWithOwner = [{ ...documents[0], owner: 'user' }];
+    const { container } = render(
+      <DocumentPage documents={docWithOwner} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={() => {}} />
+    );
+    expect(screen.getByText(/👤 אני/)).toBeInTheDocument(); // תג גלוי גם מקופל
+
+    fireEvent.click(container.querySelector('.doc-header-toggle'));
+    const ownerSelect = container.querySelector('.owner-select');
+    expect(ownerSelect.value).toBe('user');
+    fireEvent.change(ownerSelect, { target: { value: 'spouse' } });
+    expect(onUpdate).toHaveBeenCalledWith(5, expect.objectContaining({ owner: 'spouse' }));
+  });
 });

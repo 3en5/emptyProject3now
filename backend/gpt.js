@@ -20,6 +20,7 @@ const SCHEMA = {
     docDate: { type: 'string', description: "התאריך שמופיע על המסמך עצמו (תאריך הפקה/חתימה), בפורמט YYYY-MM-DD, או '' אם אין" },
     renewalDate: { type: 'string', description: "מועד חידוש/תפוגה/הגשה עתידי (שונה מ-docDate), בפורמט YYYY-MM-DD, או '' אם אין" },
     summary: { type: 'string', description: "תקציר קצר בעברית (1-2 משפטים): מה המסמך, מה הגוף, ומה עיקר תוכנו" },
+    personName: { type: 'string', description: "השם הפרטי+משפחה של האדם שהמסמך נוגע אליו — למשל שם העובד/ת בטופס 106, שם המבוטח בפוליסה, שם בעל/ת החשבון. או '' אם לא מופיע שם אדם ספציפי (למשל דוח על שם חברה/עסק)" },
     amounts: {
       type: 'array',
       items: { type: 'string', description: "שורת סכום כפי שמופיעה במסמך, כולל הקשר, למשל 'פרמיה חודשית: 340 ₪' או 'יתרה לתשלום: 12,500 ₪'" },
@@ -27,7 +28,7 @@ const SCHEMA = {
     },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'רמת הביטחון בזיהוי' },
   },
-  required: ['issuerName', 'docType', 'entityType', 'year', 'docDate', 'renewalDate', 'summary', 'amounts', 'confidence'],
+  required: ['issuerName', 'docType', 'entityType', 'year', 'docDate', 'renewalDate', 'summary', 'personName', 'amounts', 'confidence'],
 };
 
 const MEDIA_TYPES = {
@@ -69,13 +70,14 @@ const PROMPT = `אתה עוזר לזהות ולסכם מסמכים פיננסי�
 - docDate: התאריך שמופיע על המסמך עצמו (תאריך הפקה/חתימה) — לא בהכרח מועד חידוש.
 - renewalDate: מועד חידוש/תפוגה/הגשה עתידי, אם שונה מ-docDate.
 - summary: תקציר קצר וממוקד בעברית (1-2 משפטים) — מה המסמך, מי הגוף, ומה עיקר התוכן (למשל: "פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים בפרמיה חודשית קבועה").
+- personName: השם המלא של האדם שהמסמך נוגע אליו, אם מופיע (עובד/ת, מבוטח/ת, בעל/ת חשבון). אם המסמך על שם חברה/עסק בלבד ולא אדם ספציפי — החזר ''.
 - amounts: כל הסכומים הכספיים המשמעותיים במסמך כפי שהם מופיעים בו (עד 8), כל אחד עם הקשר קצר. אם אין סכומים — מערך ריק.
 - confidence: כמה אתה בטוח בזיהוי.
 אם משהו לא ברור — החזר '' (או 0 לשנה, [] לסכומים). אל תמציא נתונים.`;
 
 /**
  * understandWithGPT(filePath) → אובייקט בשמות הכלליים
- * (issuerName/docType/entityType/year/docDate/renewalDate/summary/amounts/confidence)
+ * (issuerName/docType/entityType/year/docDate/renewalDate/summary/personName/amounts/confidence)
  * או null אם אין מפתח / הקובץ לא נתמך / שגיאה.
  */
 export async function understandWithGPT(filePath) {

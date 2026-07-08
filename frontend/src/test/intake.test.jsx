@@ -222,4 +222,25 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     await screen.findByText(/זוהה ותויק לסלוט קיים/);
     expect(screen.queryByText(/גם סומנה כהושלמה/)).not.toBeInTheDocument();
   });
+
+  test('עבור מי: שם שזוהה מוצג כרמז, והבחירה (ownerGuess) נשלחת ב"אשר ושמור"', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        ...INTAKE_MATCHED,
+        document: { ...INTAKE_MATCHED.document, owner: 'spouse' },
+        suggestions: { ...INTAKE_MATCHED.suggestions, personName: 'דנה כהן', ownerGuess: 'spouse' },
+      },
+    });
+    vi.mocked(axios.put).mockResolvedValue({ data: { ...INTAKE_MATCHED.document, auto_filed: 0, owner: 'spouse' } });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('form106.pdf');
+
+    expect(await screen.findByText(/זוהה שם: דנה כהן/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('👤 בן/בת זוג')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /אשר ושמור/ }));
+    await waitFor(() => expect(axios.put).toHaveBeenCalled());
+    const [, payload] = vi.mocked(axios.put).mock.calls[0];
+    expect(payload.owner).toBe('spouse');
+  });
 });

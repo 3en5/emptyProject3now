@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useReadOnly } from '../ReadOnlyContext';
 import { ENTITY_TYPES } from '../constants/entityTypes';
+import { OWNER_OPTIONS } from '../constants/owner';
 
 // מי ניתח את המסמך — שקיפות למשתמש (GPT באמת רץ, או רק כללים מקומיים)
 const METHOD_META = {
@@ -87,12 +88,14 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
           method: data.suggestions?.method, // 'gpt' | 'rules' — מי ניתח
           aiError: data.suggestions?.aiError, // GPT הופעל אך נכשל
           matchedTask: data.matchedTask, // משימה שנתית שסומנה אוטומטית כהושלמה עקב המסמך
+          personName: data.suggestions?.personName || '', // שם שזוהה על המסמך (רמז ל"עבור מי")
           document: data.document,
           edit: {
             entity_id: data.document.entity_id,
             document_name: data.document.document_name || '',
             year: data.document.year || '',
             required_by_date: data.document.required_by_date || '',
+            owner: data.document.owner || '',
           },
           newEntity: null, // { name, type } כשפותחים מיני-טופס יצירה
           saved: false,
@@ -145,6 +148,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
         year: r.edit.year ? parseInt(r.edit.year) : null,
         required_by_date: r.edit.required_by_date || null,
         entity_id: r.edit.entity_id ? parseInt(r.edit.entity_id) : null,
+        owner: r.edit.owner || '',
         auto_filed: 0,
       });
       patch(r.key, { saved: true, document: data });
@@ -248,7 +252,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                       <label>
                         גוף
                         <div className="intake-entity-row">
-                          <select value={r.edit.entity_id || ''} onChange={(e) => setEdit(r.key, 'entity_id', e.target.value)}>
+                          <select className="entity-select" value={r.edit.entity_id || ''} onChange={(e) => setEdit(r.key, 'entity_id', e.target.value)}>
                             {entities.map((en) => (
                               <option key={en.id} value={en.id}>{en.name}</option>
                             ))}
@@ -270,6 +274,15 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                         מועד חידוש/הגשה
                         <input type="date" className="analysis-date-input" value={r.edit.required_by_date} onChange={(e) => setEdit(r.key, 'required_by_date', e.target.value)} />
                         {r.renewalDetected && <span className="analysis-detected">✓ זוהה</span>}
+                      </label>
+                      <label>
+                        עבור מי
+                        <select value={r.edit.owner} onChange={(e) => setEdit(r.key, 'owner', e.target.value)}>
+                          {OWNER_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        {r.personName && <span className="analysis-detected">✓ זוהה שם: {r.personName}</span>}
                       </label>
 
                       {r.newEntity && (
