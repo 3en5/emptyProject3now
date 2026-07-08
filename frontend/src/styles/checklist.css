@@ -1,0 +1,84 @@
+/* checklist.css — תב"ר שנתי: מכולה, סקשנים, משימות */
+
+.checklist-container {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.status-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.status-section {
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border-top: 4px solid var(--warning);
+}
+
+.status-section.completed {
+  border-top-color: var(--success);
+}
+
+.status-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.task-list {
+  list-style: none;
+}
+
+.task-item {
+  padding: 1rem;
+  background: white;
+  margin-bottom: 1rem;
+  border-radius: 5px;
+  border-right: 3px solid var(--warning);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.task-item.completed {
+  border-right-color: var(--success);
+  opacity: 0.7;
+}
+
+.task-info {
+  flex: 1;
+}
+
+.task-info h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.task-info .badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+}
+
+.task-info .badge.entity {
+  background: var(--success);
+}
+
+.task-info .badge.date {
+  background: var(--warning);
+}
+
+.assignee {
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: #666;
+}

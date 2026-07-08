@@ -1,0 +1,60 @@
+/* misc.css — הודעות שגיאה, מצב ריק, ורספונסיביות */
+
+.error-message {
+  background: #fee;
+  border-left: 4px solid var(--danger);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  color: var(--danger);
+}
+
+.no-data {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .navbar-menu {
+    flex-direction: column;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .page h1 {
+    font-size: 1.8rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .entities-grid, .documents-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group, .stats {
+    flex-direction: column;
+  }
+}

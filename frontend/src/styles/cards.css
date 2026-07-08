@@ -1,0 +1,100 @@
+/* cards.css — כרטיסי גופים ומסמכים */
+
+.entities-grid, .documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.entity-card, .document-card {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  border-right: 4px solid var(--primary);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.entity-card:hover, .document-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.entity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.entity-header h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.category-label {
+  background: var(--primary);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.entity-details {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.entity-details p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.entity-details a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.entity-details a:hover {
+  text-decoration: underline;
+}
+
+.entity-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.entity-actions .btn {
+  flex: 1;
+}
+
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.doc-header h3 {
+  font-size: 1.1rem;
+}
+
+.status-badge {
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.doc-info {
+  font-size: 0.95rem;
+}
+
+.doc-info p {
+  margin-bottom: 0.5rem;
+}

@@ -49,8 +49,22 @@
 | `frontend/package.json` | תלויות ה-frontend: react, react-dom, axios, vite |
 | `frontend/src/main.jsx` | נקודת הכניסה של React — מרנדר את `App` ל-DOM |
 | `frontend/src/App.jsx` | הרכיב הראשי: ניהול state גלובלי, כל קריאות ה-API, ניתוב בין עמודים |
-| `frontend/src/index.css` | **כל העיצוב של האפליקציה** — כאן משנים סגנון, צבעים, layout, RTL |
-| `frontend/src/App.css` | ריק (כל הסגנון ב-`index.css`) |
+| `frontend/src/index.css` | נקודת כניסה לעיצוב — מייבא (`@import`) את כל ה-partials מ-`styles/` |
+| `frontend/src/App.css` | ריק (כל הסגנון ב-`styles/`) |
+
+### Frontend — עיצוב (`frontend/src/styles/`)
+
+> העיצוב פוצל לקבצים לפי אזור כדי לעמוד בכלל 500 השורות. לשנות סגנון — לערוך את הקובץ הרלוונטי כאן.
+
+| קובץ | תפקיד |
+|------|-------|
+| `styles/base.css` | reset, משתני צבע (`:root`), body, layout כללי, אנימציות |
+| `styles/navbar.css` | סרגל הניווט העליון |
+| `styles/dashboard.css` | עמוד הבית: סטטיסטיקות, גופים לפי סוג, רשימות ממתינים |
+| `styles/forms.css` | טפסים, כפתורים, פקדי סינון |
+| `styles/cards.css` | כרטיסי גופים ומסמכים |
+| `styles/checklist.css` | תב"ר שנתי: מכולה, סקשנים, משימות |
+| `styles/misc.css` | הודעות שגיאה, מצב ריק, ורספונסיביות (media query) |
 
 ### Frontend — רכיבים (`frontend/src/components/`)
 

@@ -25,6 +25,7 @@
 | 10 | **עיצוב RTL** — כל ה-CSS בעברית | `frontend/src/index.css` | 2026-07-08 |
 | 11 | **קבצי תיעוד** — README, CLAUDE.md, INDEX.md | `README.md`, `CLAUDE.md`, `INDEX.md` | 2026-07-08 |
 | 12 | **קבצי-על נוספים** — PROGRESS, WISHLIST, LESSONS, REPORTS | `PROGRESS.md`, `WISHLIST.md`, `LESSONS.md`, `REPORTS.md` | 2026-07-08 |
+| 13 | **פיצול index.css** — יישום כלל 500 השורות: 627 שורות → 7 partials תחת `styles/` | `frontend/src/styles/*.css`, `index.css` | 2026-07-08 |
 
 ---
 
