@@ -55,7 +55,8 @@
 | `frontend/package.json` | תלויות ה-frontend: react, react-dom, axios, vite |
 | `frontend/vite.config.js` | הגדרות Vite: port 5173, proxy מ-`/api` ל-`localhost:3001`. **חייב להיות ב-`frontend/`** (Vite רץ משם) |
 | `frontend/src/main.jsx` | נקודת הכניסה של React — מרנדר את `App` ל-DOM |
-| `frontend/src/App.jsx` | הרכיב הראשי: ניהול state גלובלי, כל קריאות ה-API, ניתוב בין עמודים |
+| `frontend/src/App.jsx` | הרכיב הראשי: ניהול state גלובלי, כל קריאות ה-API, ניתוב בין עמודים, ספק `ReadOnlyContext` |
+| `frontend/src/ReadOnlyContext.js` | Context למצב צפייה-בלבד + hook `useReadOnly()` — מסתיר כפתורי עריכה |
 | `frontend/src/index.css` | נקודת כניסה לעיצוב — מייבא (`@import`) את כל ה-partials מ-`styles/` |
 | `frontend/src/App.css` | ריק (כל הסגנון ב-`styles/`) |
 
@@ -177,6 +178,11 @@
 
 ### עיצוב, צבעים, layout, RTL
 - `frontend/src/index.css` — הכל במקום אחד (משתני CSS ב-`:root`)
+
+### מצב צפייה-בלבד (read-only)
+- מקור: `ReadOnlyContext.js` (+`useReadOnly()`); toggle ב-`App.jsx` (נשמר ב-localStorage), כפתור ב-`Navigation.jsx`
+- כל עמוד/רכיב שמאפשר עריכה קורא `useReadOnly()` ומסתיר את כפתורי היצירה/עריכה/מחיקה כש-true
+- ⚠️ מצב **תצוגה** בלבד — לא אבטחה. הרשאות אמיתיות (login) = שלב עתידי
 
 ### ניווט / הוספת עמוד חדש
 1. `components/Navigation.jsx` — כפתור חדש

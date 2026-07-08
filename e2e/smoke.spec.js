@@ -148,6 +148,19 @@ test('רכבים ורישיונות: סינון מציג רכב, ומסמכי ח
   await expect(page.getByText('ביטוח חובה')).toBeVisible();
 });
 
+test('מצב צפייה-בלבד מסתיר כפתורי עריכה', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /גופים פיננסיים/ }).click();
+  // במצב עריכה — כפתור הוספה קיים
+  await expect(page.getByRole('button', { name: /הוסף גוף פיננסי/ })).toBeVisible();
+  // מעבר למצב צפייה
+  await page.getByRole('button', { name: /מצב עריכה/ }).click();
+  await expect(page.getByRole('button', { name: /מצב צפייה/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /הוסף גוף פיננסי/ })).toHaveCount(0);
+  // התוכן עדיין מוצג
+  await expect(page.locator('.entity-card').first()).toBeVisible();
+});
+
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /גופים פיננסיים/ }).click();

@@ -1,0 +1,34 @@
+import { describe, test, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ReadOnlyContext } from '../ReadOnlyContext';
+import EntityList from '../components/EntityList';
+import AccountsPage from '../pages/AccountsPage';
+
+const entities = [{ id: 1, name: 'בנק מזרחי', type: 'bank', category: 'משפחתי' }];
+const accounts = [{ id: 1, entity_id: 1, account_name: 'עו״ש', balance: 100, currency: 'ILS', entity_name: 'בנק מזרחי' }];
+
+function renderWith(readOnly, ui) {
+  return render(<ReadOnlyContext.Provider value={readOnly}>{ui}</ReadOnlyContext.Provider>);
+}
+
+describe('מצב צפייה-בלבד (read-only)', () => {
+  test('EntityList — במצב עריכה מציג כפתורי ערוך/מחק', () => {
+    renderWith(false, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText(/ערוך/)).toBeInTheDocument();
+    expect(screen.getByText(/מחק/)).toBeInTheDocument();
+  });
+
+  test('EntityList — במצב צפייה מסתיר כפתורי ערוך/מחק', () => {
+    renderWith(true, <EntityList entities={entities} onEdit={() => {}} onDelete={() => {}} />);
+    expect(screen.queryByText(/ערוך/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/מחק/)).not.toBeInTheDocument();
+    // אבל התוכן עצמו עדיין מוצג
+    expect(screen.getByText(/בנק מזרחי/)).toBeInTheDocument();
+  });
+
+  test('AccountsPage — במצב צפייה אין כפתור "הוסף חשבון"', () => {
+    renderWith(true, <AccountsPage accounts={accounts} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.queryByText(/הוסף חשבון/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /עו״ש/ })).toBeInTheDocument();
+  });
+});

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
+import { useReadOnly } from '../ReadOnlyContext';
 
 const EMPTY_TASK = {
   task_name: '',
@@ -10,6 +11,7 @@ const EMPTY_TASK = {
 };
 
 export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
+  const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_TASK);
@@ -91,9 +93,11 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
       <h1>✅ משימות שנתיות {new Date().getFullYear()}</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
-          {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
-        </button>
+        {!readOnly && (
+          <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
+            {showForm ? '❌ ביטול' : '➕ הוסף משימה'}
+          </button>
+        )}
         <div className="stats">
           <span>⏳ {getPendingCount()} ממתינות</span>
           <span>✅ {getCompletedCount()} הושלמו</span>
@@ -200,15 +204,17 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                       </div>
                       <div className="task-actions">
                         <span className="assignee">👤 {task.assignee === 'spouse' ? 'בן/בת זוג' : 'אני'}</span>
-                        <button className="btn btn-small btn-success" onClick={() => toggleComplete(task)}>
-                          ✔️ סמן כהושלם
-                        </button>
-                        <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
-                          ✏️
-                        </button>
-                        <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
-                          🗑️
-                        </button>
+                        {!readOnly && (<>
+                          <button className="btn btn-small btn-success" onClick={() => toggleComplete(task)}>
+                            ✔️ סמן כהושלם
+                          </button>
+                          <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
+                            ✏️
+                          </button>
+                          <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
+                            🗑️
+                          </button>
+                        </>)}
                       </div>
                     </li>
                   ))}
@@ -229,17 +235,19 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                         {task.task_category && <span className="badge">{task.task_category}</span>}
                         {task.completed_date && <span className="badge date">הושלם: {new Date(task.completed_date).toLocaleDateString('he-IL')}</span>}
                       </div>
-                      <div className="task-actions">
-                        <button className="btn btn-small btn-secondary" onClick={() => toggleComplete(task)}>
-                          ↩️ החזר לממתין
-                        </button>
-                        <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
-                          ✏️
-                        </button>
-                        <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
-                          🗑️
-                        </button>
-                      </div>
+                      {!readOnly && (
+                        <div className="task-actions">
+                          <button className="btn btn-small btn-secondary" onClick={() => toggleComplete(task)}>
+                            ↩️ החזר לממתין
+                          </button>
+                          <button className="btn btn-small btn-edit" onClick={() => openEdit(task)}>
+                            ✏️
+                          </button>
+                          <button className="btn btn-small btn-delete" onClick={() => handleDelete(task)}>
+                            🗑️
+                          </button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

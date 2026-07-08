@@ -42,6 +42,7 @@
 | 27 | **השוואת שנה-לשנה (משאלה #2)** — `documents.year` + `active_from/until` (מיגרציה), `/api/comparison/:year`, עמוד עם missing/received/added/ended; seed עם היסטוריית 2025; 77 טסטים | `routes/comparison.js`, `pages/ComparisonPage.jsx`, `init.js`, `schema.sql`, `seed.js` | 2026-07-08 |
 | 28 | **זיהוי חכם של מסמכים (משאלה #1, MVP)** — חילוץ טקסט PDF + מנוע סיווג (גוף/סוג/שנה), `/analyze`, כפתור "נתח"+"החל הצעה"; 90 טסטים ירוקים | `classify.js`, `extract.js`, `routes/documents.js`, `DocumentPage.jsx` | 2026-07-08 |
 | 29 | **רכבים ורישיונות** — סוגי גופים חדשים (vehicle/license) + קטגוריות; seed עם ביטוח חובה/מקיף/טסט, כלי יריה, מתווך נדל"ן. משתלב ברמזור המועדים; 92 טסטים | `EntityForm.jsx`, `Dashboard.jsx`, `EntityList.jsx`, `EntitiesPage.jsx`, `seed.js` | 2026-07-08 |
+| 30 | **מצב צפייה-בלבד** — toggle בניווט שמסתיר כל כפתורי העריכה (React Context + localStorage); 96 טסטים | `ReadOnlyContext.js`, `App.jsx`, `Navigation.jsx`, כל העמודים | 2026-07-08 |
 
 ---
 
@@ -92,7 +93,8 @@
 
 ### שלב 4 — אוטומציה
 - [ ] אינטגרציה עם API של בנקים לשליפה אוטומטית
-- [ ] מנגנון אימות והרשאות (login, read-only לבן/בת זוג)
+- [x] מצב צפייה-בלבד לבן/בת זוג (UI mode) — נעשה
+- [ ] מנגנון אימות והרשאות אמיתי (login, משתמשים) — עדיין פתוח
 
 ---
 

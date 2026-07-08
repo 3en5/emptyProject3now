@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
+import { useReadOnly } from '../ReadOnlyContext';
 
 const EMPTY_DOC = {
   entity_id: '',
@@ -11,6 +12,7 @@ const EMPTY_DOC = {
 };
 
 export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload }) {
+  const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [editingId, setEditingId] = useState(null);
@@ -138,9 +140,11 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       <h1>📄 ניהול מסמכים</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
-          {showForm ? '❌ ביטול' : '➕ הוסף מסמך'}
-        </button>
+        {!readOnly && (
+          <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
+            {showForm ? '❌ ביטול' : '➕ הוסף מסמך'}
+          </button>
+        )}
 
         <div className="filter-group">
           <select
@@ -266,6 +270,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                     )}
                   </p>
                 </div>
+                {!readOnly && (<>
                 <div className="doc-upload">
                   <label className="btn btn-small btn-upload">
                     {uploadingId === doc.id ? '⏳ מעלה…' : (doc.file_path ? '🔄 החלף קובץ' : '📤 העלה קובץ')}
@@ -325,6 +330,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                     🗑️
                   </button>
                 </div>
+                </>)}
               </div>
             ))}
           </div>

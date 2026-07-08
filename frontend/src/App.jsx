@@ -9,11 +9,13 @@ import DocumentPage from './pages/DocumentPage';
 import AccountsPage from './pages/AccountsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComparisonPage from './pages/ComparisonPage';
+import { ReadOnlyContext } from './ReadOnlyContext';
 
 const API_URL = '/api';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [readOnly, setReadOnly] = useState(() => localStorage.getItem('readOnly') === '1');
   const [entities, setEntities] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [checklist, setChecklist] = useState([]);
@@ -193,9 +195,18 @@ export default function App() {
     return <div className="container"><p>טוען נתונים...</p></div>;
   }
 
+  const toggleReadOnly = () => {
+    setReadOnly((prev) => {
+      const next = !prev;
+      localStorage.setItem('readOnly', next ? '1' : '0');
+      return next;
+    });
+  };
+
   return (
+    <ReadOnlyContext.Provider value={readOnly}>
     <div className="app">
-      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
+      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} readOnly={readOnly} onToggleReadOnly={toggleReadOnly} />
       <main className="main-content">
         {error && <div className="error-message">{error}</div>}
 
@@ -253,5 +264,6 @@ export default function App() {
         {currentPage === 'comparison' && <ComparisonPage />}
       </main>
     </div>
+    </ReadOnlyContext.Provider>
   );
 }

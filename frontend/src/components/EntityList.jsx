@@ -1,4 +1,7 @@
+import { useReadOnly } from '../ReadOnlyContext';
+
 export default function EntityList({ entities, onEdit, onDelete }) {
+  const readOnly = useReadOnly();
   const getTypeIcon = (type) => {
     const icons = {
       bank: '🏦',
@@ -43,18 +46,20 @@ export default function EntityList({ entities, onEdit, onDelete }) {
                 )}
               </div>
 
-              <div className="entity-actions">
-                <button className="btn btn-small btn-edit" onClick={() => onEdit(entity.id)}>
-                  ✏️ ערוך
-                </button>
-                <button className="btn btn-small btn-delete" onClick={() => {
-                  if (confirm(`האם אתה בטוח שברצונך למחוק את ${entity.name}?`)) {
-                    onDelete(entity.id);
-                  }
-                }}>
-                  🗑️ מחק
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="entity-actions">
+                  <button className="btn btn-small btn-edit" onClick={() => onEdit(entity.id)}>
+                    ✏️ ערוך
+                  </button>
+                  <button className="btn btn-small btn-delete" onClick={() => {
+                    if (confirm(`האם אתה בטוח שברצונך למחוק את ${entity.name}?`)) {
+                      onDelete(entity.id);
+                    }
+                  }}>
+                    🗑️ מחק
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

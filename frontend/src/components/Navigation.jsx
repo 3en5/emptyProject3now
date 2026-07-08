@@ -1,8 +1,15 @@
-export default function Navigation({ currentPage, onPageChange }) {
+export default function Navigation({ currentPage, onPageChange, readOnly, onToggleReadOnly }) {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
         <h1>💰 ניהול מסמכים פיננסיים</h1>
+        <button
+          className={`readonly-toggle ${readOnly ? 'on' : ''}`}
+          onClick={onToggleReadOnly}
+          title="מצב צפייה-בלבד — מסתיר כפתורי עריכה"
+        >
+          {readOnly ? '👁️ מצב צפייה' : '✏️ מצב עריכה'}
+        </button>
       </div>
       <ul className="navbar-menu">
         <li>

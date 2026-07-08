@@ -12,9 +12,37 @@
   gap: 2rem;
 }
 
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .navbar-brand h1 {
   font-size: 1.8rem;
   font-weight: 700;
+}
+
+.readonly-toggle {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.readonly-toggle:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.readonly-toggle.on {
+  background: #f39c12;
+  border-color: #f39c12;
+  font-weight: 600;
 }
 
 .navbar-menu {

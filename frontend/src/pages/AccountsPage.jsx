@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useReadOnly } from '../ReadOnlyContext';
 
 const EMPTY = {
   entity_id: '',
@@ -10,6 +11,7 @@ const EMPTY = {
 };
 
 export default function AccountsPage({ accounts, entities, onAdd, onUpdate, onDelete }) {
+  const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
@@ -62,9 +64,11 @@ export default function AccountsPage({ accounts, entities, onAdd, onUpdate, onDe
       <h1>💳 ניהול חשבונות</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={showForm ? () => setShowForm(false) : openAdd}>
-          {showForm ? '❌ ביטול' : '➕ הוסף חשבון'}
-        </button>
+        {!readOnly && (
+          <button className="btn btn-primary" onClick={showForm ? () => setShowForm(false) : openAdd}>
+            {showForm ? '❌ ביטול' : '➕ הוסף חשבון'}
+          </button>
+        )}
         <div className="stats">
           <span>📊 {accounts.length} חשבונות</span>
         </div>
@@ -165,10 +169,12 @@ export default function AccountsPage({ accounts, entities, onAdd, onUpdate, onDe
                   <p><strong>יתרה:</strong> {Number(acc.balance).toLocaleString('he-IL')} {acc.currency}</p>
                 )}
               </div>
-              <div className="entity-actions">
-                <button className="btn btn-small btn-edit" onClick={() => openEdit(acc)}>✏️ ערוך</button>
-                <button className="btn btn-small btn-delete" onClick={() => handleDelete(acc)}>🗑️ מחק</button>
-              </div>
+              {!readOnly && (
+                <div className="entity-actions">
+                  <button className="btn btn-small btn-edit" onClick={() => openEdit(acc)}>✏️ ערוך</button>
+                  <button className="btn btn-small btn-delete" onClick={() => handleDelete(acc)}>🗑️ מחק</button>
+                </div>
+              )}
             </div>
           ))}
         </div>

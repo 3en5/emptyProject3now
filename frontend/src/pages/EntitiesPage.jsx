@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import EntityForm from '../components/EntityForm';
 import EntityList from '../components/EntityList';
+import { useReadOnly } from '../ReadOnlyContext';
 
 export default function EntitiesPage({ entities, onAdd, onUpdate, onDelete }) {
+  const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedType, setSelectedType] = useState('all');
@@ -30,9 +32,11 @@ export default function EntitiesPage({ entities, onAdd, onUpdate, onDelete }) {
       <h1>🏦 ניהול גופים פיננסיים</h1>
 
       <div className="page-controls">
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '❌ ביטול' : '➕ הוסף גוף פיננסי'}
-        </button>
+        {!readOnly && (
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? '❌ ביטול' : '➕ הוסף גוף פיננסי'}
+          </button>
+        )}
 
         <select
           className="filter-select"
