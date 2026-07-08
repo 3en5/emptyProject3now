@@ -24,6 +24,7 @@
 | 9 | **תב"ר שנתי** — טופס משימות, הפרדת ממתין/הושלם | `frontend/src/pages/ChecklistPage.jsx` | 2026-07-08 |
 | 10 | **עיצוב RTL** — כל ה-CSS בעברית | `frontend/src/index.css` | 2026-07-08 |
 | 11 | **קבצי תיעוד** — README, CLAUDE.md, INDEX.md | `README.md`, `CLAUDE.md`, `INDEX.md` | 2026-07-08 |
+| 12 | **קבצי-על נוספים** — PROGRESS, WISHLIST, LESSONS, REPORTS | `PROGRESS.md`, `WISHLIST.md`, `LESSONS.md`, `REPORTS.md` | 2026-07-08 |
 
 ---
 
