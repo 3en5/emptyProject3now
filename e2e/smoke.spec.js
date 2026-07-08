@@ -5,8 +5,9 @@ import { test, expect } from '@playwright/test';
 test('הדשבורד נטען ומציג את המצאי', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.navbar-brand h1')).toContainText('ניהול מסמכים פיננסיים');
-  // 18 גופים מהזריעה
-  await expect(page.locator('.stat-number').first()).toHaveText('18');
+  // מספר הגופים מהזריעה (חיובי) — לא מקודד ערך קשיח כדי לא להישבר בכל שינוי seed
+  const count = Number(await page.locator('.stat-number').first().textContent());
+  expect(count).toBeGreaterThan(15);
 });
 
 test('סעיף התראות המועדים מופיע בדשבורד עם פריטים באיחור', async ({ page }) => {
@@ -134,6 +135,17 @@ test('זיהוי חכם: העלאת PDF וניתוח מזהה סוג ושנה', 
   await expect(box).toBeVisible();
   await expect(box.getByText(/Annual Activity Statement/)).toBeVisible();
   await expect(box.getByText('2025', { exact: true })).toBeVisible();
+});
+
+test('רכבים ורישיונות: סינון מציג רכב, ומסמכי חידוש קיימים', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /גופים פיננסיים/ }).click();
+  await page.selectOption('.filter-select', 'vehicle');
+  await expect(page.getByRole('heading', { name: /רכב פרטי/ })).toBeVisible();
+  // מסמכי הרכב (ביטוח/טסט) קיימים בעמוד המסמכים
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  await expect(page.getByText('טסט שנתי')).toBeVisible();
+  await expect(page.getByText('ביטוח חובה')).toBeVisible();
 });
 
 test('הוספת גוף פיננסי חדש דרך הטופס', async ({ page }) => {

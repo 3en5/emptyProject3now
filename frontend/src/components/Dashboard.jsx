@@ -25,7 +25,9 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
     insurance: '🛡️ ביטוחים',
     investment: '📈 השקעות',
     realty: '🏠 נדלן',
-    loan: '💳 הלוואות'
+    loan: '💳 הלוואות',
+    vehicle: '🚗 רכבים',
+    license: '📜 רישיונות'
   };
 
   const entitiesByType = {};

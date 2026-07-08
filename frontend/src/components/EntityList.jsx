@@ -5,7 +5,9 @@ export default function EntityList({ entities, onEdit, onDelete }) {
       insurance: '🛡️',
       investment: '📈',
       realty: '🏠',
-      loan: '💳'
+      loan: '💳',
+      vehicle: '🚗',
+      license: '📜'
     };
     return icons[type] || '📋';
   };

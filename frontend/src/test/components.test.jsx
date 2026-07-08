@@ -139,6 +139,16 @@ describe('EntityList', () => {
     fireEvent.click(screen.getAllByText(/ערוך/)[0]);
     expect(onEdit).toHaveBeenCalledWith(1);
   });
+
+  test('מרנדר סוגים חדשים (רכב/רישיון) עם אייקון מתאים', () => {
+    const items = [
+      { id: 7, name: 'רכב פרטי', type: 'vehicle', category: 'רכב פרטי' },
+      { id: 8, name: 'רישיון כלי יריה', type: 'license', category: 'רישיון כלי יריה' },
+    ];
+    render(<EntityList entities={items} onEdit={() => {}} onDelete={() => {}} />);
+    expect(screen.getByRole('heading', { name: /🚗 רכב פרטי/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /📜 רישיון כלי יריה/ })).toBeInTheDocument();
+  });
 });
 
 describe('AccountsPage', () => {

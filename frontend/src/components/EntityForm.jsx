@@ -5,7 +5,9 @@ const ENTITY_TYPES = [
   { value: 'insurance', label: '🛡️ ביטוח' },
   { value: 'investment', label: '📈 השקעה' },
   { value: 'realty', label: '🏠 נדלן' },
-  { value: 'loan', label: '💳 הלוואה' }
+  { value: 'loan', label: '💳 הלוואה' },
+  { value: 'vehicle', label: '🚗 רכב' },
+  { value: 'license', label: '📜 רישיון' }
 ];
 
 const CATEGORIES = {
@@ -13,7 +15,9 @@ const CATEGORIES = {
   insurance: ['ביטוח חיים', 'ביטוח בריאות', 'ביטוח רכוש', 'ביטוח מנהלים'],
   investment: ['קרן השתלמות', 'קרן פנסיה', 'ניירות ערך', 'קרן השקעות'],
   realty: ['דירת מגורים', 'נכס השקעה'],
-  loan: ['משכנתא', 'הלוואה אישית']
+  loan: ['משכנתא', 'הלוואה אישית'],
+  vehicle: ['רכב פרטי', 'רכב מסחרי', 'אופנוע'],
+  license: ['רישיון כלי יריה', 'תעודת מתווך נדל"ן', 'רישיון נהיגה', 'אחר']
 };
 
 export default function EntityForm({ onSubmit, editingEntity, onCancel }) {

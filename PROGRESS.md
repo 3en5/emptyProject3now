@@ -41,6 +41,7 @@
 | 26 | **דוח סיכום נכסים/התחייבויות** — `/api/summary`, שווי נקי לפי מטבע, התפלגות נכסים; seed עם יתרות; 67 טסטים | `routes/summary.js`, `pages/ReportsPage.jsx`, `seed.js`, `Navigation.jsx` | 2026-07-08 |
 | 27 | **השוואת שנה-לשנה (משאלה #2)** — `documents.year` + `active_from/until` (מיגרציה), `/api/comparison/:year`, עמוד עם missing/received/added/ended; seed עם היסטוריית 2025; 77 טסטים | `routes/comparison.js`, `pages/ComparisonPage.jsx`, `init.js`, `schema.sql`, `seed.js` | 2026-07-08 |
 | 28 | **זיהוי חכם של מסמכים (משאלה #1, MVP)** — חילוץ טקסט PDF + מנוע סיווג (גוף/סוג/שנה), `/analyze`, כפתור "נתח"+"החל הצעה"; 90 טסטים ירוקים | `classify.js`, `extract.js`, `routes/documents.js`, `DocumentPage.jsx` | 2026-07-08 |
+| 29 | **רכבים ורישיונות** — סוגי גופים חדשים (vehicle/license) + קטגוריות; seed עם ביטוח חובה/מקיף/טסט, כלי יריה, מתווך נדל"ן. משתלב ברמזור המועדים; 92 טסטים | `EntityForm.jsx`, `Dashboard.jsx`, `EntityList.jsx`, `EntitiesPage.jsx`, `seed.js` | 2026-07-08 |
 
 ---
 

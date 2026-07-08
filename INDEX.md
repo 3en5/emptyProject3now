@@ -123,10 +123,12 @@
 3. הרכיב/עמוד הרלוונטי ב-frontend — הצגה/עריכה של השדה
 > ⚠️ שינוי סכימה לא משפיע על DB קיים (`IF NOT EXISTS`). למחוק את `backend/db/finance.db` או להריץ migration.
 
-### גופים פיננסיים (בנקים, ביטוחים, השקעות)
+### גופים (בנקים, ביטוחים, השקעות, רכבים, רישיונות)
 - Backend: `backend/routes/entities.js`
 - Frontend: `pages/EntitiesPage.jsx`, `components/EntityForm.jsx`, `components/EntityList.jsx`
-- קטגוריות/סוגים: מוגדרים בתוך `EntityForm.jsx` (קבועים `ENTITY_TYPES`, `CATEGORIES`)
+- **סוגים** (`type`): bank / insurance / investment / realty / loan / **vehicle** / **license**
+- קטגוריות/סוגים/אייקונים: `EntityForm.jsx` (`ENTITY_TYPES`, `CATEGORIES`), `EntityList.jsx` (אייקונים), `Dashboard.jsx` (`entityTypes`), `EntitiesPage.jsx` (סינון)
+- רכב/רישיון: החידושים (ביטוח חובה/מקיף, טסט, כלי יריה, מתווך) נשמרים כ-`documents` עם `required_by_date` → נכנסים אוטומטית לרמזור המועדים
 
 ### מסמכים ודוחות
 - Backend: `backend/routes/documents.js`
