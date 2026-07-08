@@ -39,7 +39,8 @@
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
 | `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס | `/api/documents` |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
-| `backend/server.js` | נקודת הכניסה של ה-backend: Express, middleware, חיבור ה-routes, הפעלת השרת |
+| `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes, בלי listen/init. מיוצא לטסטים |
+| `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
 ### Frontend — שורש (`frontend/`)
 
@@ -83,6 +84,19 @@
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס משימה, הפרדה בין ממתינות להושלמו |
+
+### טסטים (פירמידה מלאה)
+
+| קובץ | תפקיד |
+|------|-------|
+| `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון). 14 טסטים |
+| `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
+| `frontend/src/test/setup.js` | טעינת jest-dom matchers |
+| `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL). 10 טסטים |
+| `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
+| `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות. 5 טסטים |
+
+**הרצה:** `npm run test:all` (הכל) · `npm run test:api` · `npm run test:components` · `npm run test:e2e`
 
 ---
 

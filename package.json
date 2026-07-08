@@ -9,6 +9,11 @@
     "dev": "node --watch backend/server.js",
     "client": "cd frontend && npm run dev",
     "seed": "node backend/db/seed.js",
+    "test": "node --test 'backend/test/**/*.test.js'",
+    "test:api": "node --test 'backend/test/**/*.test.js'",
+    "test:components": "cd frontend && npm test",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:api && npm run test:components && npm run test:e2e",
     "setup": "npm install && cd frontend && npm install"
   },
   "keywords": [
@@ -25,6 +30,8 @@
     "sql.js": "^1.14.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "@playwright/test": "^1.61.1",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
   }
 }

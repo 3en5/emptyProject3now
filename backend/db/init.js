@@ -6,7 +6,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, 'finance.db');
+// נתיב ה-DB ניתן להגדרה דרך env (לטסטים). ':memory:' = DB זמני בזיכרון בלבד.
+const dbPath = process.env.FINANCE_DB_PATH || path.join(__dirname, 'finance.db');
+const inMemory = dbPath === ':memory:';
 let SQL = null;
 let db = null;
 
@@ -15,7 +17,7 @@ async function initDatabase() {
     SQL = await initSqlJs();
 
     // Load existing database or create new one
-    if (fs.existsSync(dbPath)) {
+    if (!inMemory && fs.existsSync(dbPath)) {
       const filebuffer = fs.readFileSync(dbPath);
       db = new SQL.Database(filebuffer);
     } else {
@@ -54,7 +56,9 @@ async function initDatabase() {
     // Save database
     saveDatabase();
 
-    console.log('✅ Database initialized at:', dbPath);
+    if (!process.env.FINANCE_QUIET) {
+      console.log('✅ Database initialized at:', dbPath);
+    }
     return db;
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -63,7 +67,7 @@ async function initDatabase() {
 }
 
 function saveDatabase() {
-  if (db) {
+  if (db && !inMemory) {
     const data = db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(dbPath, buffer);

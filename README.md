@@ -36,8 +36,19 @@ npm start
 npm run client
 ```
 
-ה-app יהיה זמין ב: `http://localhost:3000`
+ה-app יהיה זמין ב: `http://localhost:5173`
 ה-API יהיה זמין ב: `http://localhost:3001/api`
+
+## 🧪 בדיקות (Testing)
+
+פירמידת טסטים מלאה — רצה מול DB מבודד, לא נוגעת בנתונים האמיתיים:
+
+```bash
+npm run test:all         # הכל: API + רכיבים + E2E
+npm run test:api         # טסטי API (node --test + supertest)
+npm run test:components  # טסטי רכיבי React (Vitest + Testing Library)
+npm run test:e2e         # טסטי E2E בדפדפן (Playwright)
+```
 
 ## 📁 מבנה הפרויקט
 

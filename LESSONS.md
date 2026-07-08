@@ -65,6 +65,29 @@ Insert failed: undefined
 
 ---
 
+## לקח #3 — הטמעת פירמידת טסטים (gotchas)
+
+**תאריך:** 2026-07-08
+**חומרה:** בינונית (חסם הרצת טסטים עד לפתרון)
+
+### התסמין / האתגרים
+1. `node --test backend/test` נכשל: `Cannot find module '.../backend/test'` — ניסה לטעון תיקייה כקובץ.
+2. אי אפשר לבדוק את ה-API בלי להריץ שרת אמיתי, וה-DB היה singleton עם נתיב קשיח.
+3. Playwright/`@playwright/test` לא הוריד דפדפן (מנוטרל בסביבה) — צריך להצביע ל-chromium מותקן.
+
+### הפתרון
+1. **`node --test` דורש glob, לא תיקייה:** `node --test 'backend/test/**/*.test.js'`.
+2. **בידוד DB:** `init.js` קורא `process.env.FINANCE_DB_PATH`; הערך `:memory:` = DB בזיכרון בלי כתיבה לדיסק. הטסטים מציבים אותו לפני ה-import.
+3. **הפרדת app מ-server:** `backend/app.js` מייצא `createApp()` (בלי listen), כדי שטסטים יריצו בקשות עם supertest בלי פורט. `server.js` רק מייבא, מאתחל ומאזין.
+4. **E2E:** `playwright.config.js` עם `webServer` שמפעיל backend (DB זרוע) + frontend, ו-`launchOptions.executablePath` ל-`/opt/pw-browsers/chromium-*/chrome-linux/chrome`.
+
+### הלקח לעתיד
+- טסטי backend חדשים → `backend/test/*.test.js`, מייבאים `createApp` ומציבים `FINANCE_DB_PATH=:memory:` **לפני** ה-import.
+- לא לשבור את הפרדת `app.js`/`server.js` — היא מה שמאפשרת את הטסטים.
+- להריץ `npm run test:all` לפני סיום פיצ'ר.
+
+---
+
 ## תבנית ללקח חדש (העתק-הדבק)
 
 ```
