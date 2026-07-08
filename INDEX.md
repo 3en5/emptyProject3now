@@ -46,7 +46,8 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים + סינון לפי סטטוס + העלאת/הורדת קובץ (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים + **קליטה חכמה** (`/intake` — העלאה בלי בחירת יעד, תיוק אוטומטי) + העלאת/הורדת קובץ (`/:id/upload`, `/:id/file`) | `/api/documents` |
+| `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מסמכים מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/ביטחון |
@@ -92,7 +93,9 @@
 | קובץ | תפקיד |
 |------|-------|
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
-| `frontend/src/components/Dashboard.jsx` | עמוד הבית: סטטיסטיקות, גופים לפי סוג, מסמכים ומשימות ממתינים, ורכיב עדכון התוכנה |
+| `frontend/src/components/Dashboard.jsx` | עמוד הבית: תיבת הקליטה, מדור "תויקו אוטומטית — לאישור", סטטיסטיקות, גופים לפי סוג, ממתינים, ועדכון תוכנה |
+| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור" |
+| `frontend/src/components/DocumentForm.jsx` | טופס הוספה/עריכה ידנית של מסמך (הדרך המשנית — ליצירת סלוט מתוכנן) |
 | `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
 | `frontend/src/components/EntityList.jsx` | תצוגת רשימת הגופים כ-cards עם כפתורי עריכה/מחיקה |
@@ -102,7 +105,7 @@
 | קובץ | תפקיד |
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
-| `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: טופס הוספה, סינון לפי סטטוס, תצוגת cards צבעונית |
+| `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), כרטיסי פיקוח וניהול — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס |
 | `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: טופס (יצירה+עריכה), הפרדה בין ממתינות להושלמו |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
@@ -119,13 +122,18 @@
 
 | קובץ | תפקיד |
 |------|-------|
-| `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון). 14 טסטים |
+| `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
+| `backend/test/intake.test.js` | טסטים לקליטה החכמה: `decideFiling` (טהור) + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור פיקוח) |
+| `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
+| `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
+| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים |
+| `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
-| `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות. 5 טסטים |
+| `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה ופיקוח |
 
 **הרצה:** `npm run test:all` (הכל) · `npm run test:api` · `npm run test:components` · `npm run test:e2e`
 
@@ -156,12 +164,16 @@
 - Frontend: כפתור העלאה + קישור צפייה ב-`DocumentPage.jsx`; handler `handleUploadDocument` ב-`App.jsx`
 - אחסון: `backend/uploads/` (ב-`.gitignore`). שם קובץ: `doc_<id>_<timestamp>.<ext>`
 
-### זיהוי חכם של מסמכים (משאלה #1, MVP כללים)
+### קליטה חכמה ותיוק אוטומטי (משאלה #1 — מומש במלואו)
+**העיקרון: מקום אחד לזרוק אליו מסמך. המערכת מבינה, מתייקת, והמשתמש רק מפקח.**
 - חילוץ טקסט: `backend/extract.js` (`pdf-parse`)
 - סיווג: `backend/classify.js` (ISSUERS/DOC_TYPES fingerprints + חילוץ שנה + **חילוץ מועד חידוש** לפי מילות עוגן "בתוקף עד"/"מועד חידוש"...) — **טהור, קל להרחיב**
-- Endpoint: `POST /api/documents/:id/analyze` ב-`routes/documents.js`
-- Frontend (`DocumentPage.jsx`): **ניתוח אוטומטי מיד עם ההעלאה** (`uploadAndAnalyze`) + **גרירה-ושחרור** לכרטיס; כפתור "🔍 נתח" לניתוח חוזר; תיבת הצעות + **שדה מועד חידוש נערך** (זוהה אוטומטית, ניתן לתיקון) + "החל ושמור" ששומר את המועד ל-`required_by_date`
-- ⚠️ מסמך סרוק (תמונה) → אין טקסט → ביטחון נמוך (OCR עתידי)
+- החלטת תיוק: `backend/intake.js` (`decideFiling`) — ניקוד מול סלוטים פנויים → תיוק לקיים / יצירת חדש / "ממתין לשיוך"
+- Endpoints: `POST /api/documents/intake` (קליטה ותיוק) · `POST /:id/analyze` (ניתוח חוזר לכרטיס)
+- Frontend: `components/IntakeBox.jsx` (בדשבורד ובעמוד המסמכים) — זריקת קבצים מרובים → שורת תוצאה לכל קובץ עם שדות תיקון + "אשר ושמור"
+- פיקוח: עמודת `documents.auto_filed` — 1 עד שהמשתמש מאשר; תג "🤖 תויק אוטומטית" + סינון "ממתינים לאישור" ב-`DocumentPage.jsx`; מדור התראה בדשבורד
+- גרירה ממוקדת לכרטיס ספציפי ("שים את זה כאן") עדיין נתמכת ב-`DocumentPage.jsx`
+- ⚠️ מסמך סרוק (תמונה) → אין טקסט → נקלט כ"לא מזוהה" לשיוך ידני (OCR עתידי)
 
 ### משימות שנתיות
 - Backend: `backend/routes/checklists.js`

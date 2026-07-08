@@ -70,16 +70,51 @@ test('עריכת מסמך קיים משנה את שמו', async ({ page }) => {
   await expect(page.getByText('שם מעודכן בבדיקה')).toBeVisible();
 });
 
-test('העלאת קובץ PDF למסמך ואז קישור צפייה', async ({ page }) => {
+test('קליטה חכמה: זריקת PDF לתיבת הקליטה מתייקת אוטומטית לסלוט המתאים', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
-  const firstCard = page.locator('.document-card').first();
-  await firstCard.locator('input[type="file"]').setInputFiles({
-    name: 'report.pdf',
+  // זורקים לתיבת הקליטה — בלי לבחור יעד
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'ibkr-statement.pdf',
     mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 e2e test file'),
+    buffer: makePdf('Interactive Brokers Annual Activity Statement 2026'),
   });
-  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
+  const result = page.locator('.intake-result').first();
+  await expect(result).toBeVisible();
+  // המערכת זיהתה ותייקה לבד לסלוט של IBKR
+  await expect(result.getByText(/זוהה ותויק לסלוט קיים/)).toBeVisible();
+  await expect(result.locator('input[type="text"]')).toHaveValue('Annual Activity Statement');
+  await expect(result.getByRole('link', { name: /צפייה/ })).toBeVisible();
+  // פיקוח: אישור בלחיצה אחת → הדגל יורד והקובץ נשאר מוצמד
+  await result.getByRole('button', { name: /אשר ושמור/ }).click();
+  await expect(result.getByText(/אושר ונשמר/)).toBeVisible();
+  await expect.poll(async () => {
+    const docs = await page.evaluate(() => fetch('/api/documents').then((r) => r.json()));
+    // בזריעה יש גם עותק היסטורי מ-2025 באותו שם — בודקים שלפחות אחד קיבל קובץ ואושר
+    return docs.some((x) => x.document_name === 'Annual Activity Statement' && x.file_path && !x.auto_filed) ? 'ok' : 'no';
+  }).toBe('ok');
+});
+
+test('קליטה חכמה: מסמך לא מזוהה נקלט ל"ממתין לשיוך" וניתן לשייך בפיקוח', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'mystery.pdf',
+    mimeType: 'application/pdf',
+    buffer: makePdf('totally unknown paper with no fingerprints'),
+  });
+  const result = page.locator('.intake-result').first();
+  await expect(result.getByText(/לא זוהה גוף — נא לשייך/)).toBeVisible();
+  // פיקוח: שיוך לגוף הנכון + שם ידני → אישור
+  await result.locator('select').selectOption({ label: 'IBKR' });
+  await result.locator('input[type="text"]').fill('מסמך משויך ידנית');
+  await result.getByRole('button', { name: /אשר ושמור/ }).click();
+  await expect(result.getByText(/אושר ונשמר/)).toBeVisible();
+  await expect.poll(async () => {
+    const docs = await page.evaluate(() => fetch('/api/documents').then((r) => r.json()));
+    const d = docs.find((x) => x.document_name === 'מסמך משויך ידנית');
+    return d ? d.entity_name : 'missing';
+  }).toBe('IBKR');
 });
 
 test('עמוד הדוחות מציג שווי נקי לפי מטבע', async ({ page }) => {
@@ -135,23 +170,20 @@ function makePdf(textStr) {
   return Buffer.from(pdf, 'latin1');
 }
 
-test('זיהוי אוטומטי: העלאת PDF מריצה ניתוח לבד (בלי לחיצה)', async ({ page }) => {
+test('קליטה חכמה: מועד חידוש מזוהה אוטומטית ונכנס לשדה הנערך', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
-  const firstCard = page.locator('.document-card').first();
-  // רק מעלים — הניתוח אמור לרוץ אוטומטית
-  await firstCard.locator('input[type="file"]').setInputFiles({
-    name: 'report.pdf',
+  // מסמך בלי טביעת-אצבע של גוף אבל עם תאריך תוקף — נוצר חדש עם המועד שזוהה
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'license.pdf',
     mimeType: 'application/pdf',
-    buffer: makePdf('Interactive Brokers Annual Activity Statement 2025 valid until 31/12/2027'),
+    buffer: makePdf('some renewal document valid until 31/12/2027'),
   });
-  const box = firstCard.locator('.analysis-box');
-  await expect(box).toBeVisible(); // הופיע לבד
-  await expect(box.getByText(/Annual Activity Statement/)).toBeVisible();
-  await expect(box.getByText('2025', { exact: true })).toBeVisible();
-  // מועד החידוש זוהה אוטומטית מ-"valid until 31/12/2027"
-  await expect(box.locator('.analysis-date-input')).toHaveValue('2027-12-31');
-  await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
+  const result = page.locator('.intake-result').first();
+  await expect(result).toBeVisible();
+  // מועד החידוש זוהה מ-"valid until 31/12/2027" ומולא בשדה הנערך
+  await expect(result.locator('input[type="date"]')).toHaveValue('2027-12-31');
+  await expect(result.getByText(/✓ זוהה/)).toBeVisible();
 });
 
 test('רכבים ורישיונות: סינון מציג רכב, ומסמכי חידוש קיימים', async ({ page }) => {

@@ -5,6 +5,7 @@ import { runQuery, getOne, getAll } from '../db/helper.js';
 import { upload, UPLOAD_DIR } from '../upload.js';
 import { extractText } from '../extract.js';
 import { classifyText } from '../classify.js';
+import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
 import { logActivity } from '../activity.js';
 
 const router = express.Router();
@@ -79,26 +80,115 @@ router.post('/', (req, res) => {
 
 // Update document
 router.put('/:id', (req, res) => {
-  const { document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes } = req.body;
+  const { document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed } = req.body;
 
   const result = runQuery(
     `UPDATE documents
-     SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+     SET document_name = ?, document_type = ?, required_frequency = ?, year = ?, required_by_date = ?, status = ?, date_filed = ?, notes = ?,
+         entity_id = COALESCE(?, entity_id), auto_filed = COALESCE(?, auto_filed), updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, parseInt(req.params.id)]
+    [document_name, document_type, required_frequency, year, required_by_date, status, date_filed, notes, entity_id, auto_filed, parseInt(req.params.id)]
   );
 
   if (!result.success) {
     return res.status(500).json({ error: result.error });
   }
 
-  const updated = getOne('SELECT * FROM documents WHERE id = ?', [parseInt(req.params.id)]);
+  const updated = getOne(`
+    SELECT d.*, e.name as entity_name FROM documents d
+    JOIN financial_entities e ON d.entity_id = e.id
+    WHERE d.id = ?`, [parseInt(req.params.id)]);
   if (updated) {
     const STATUS_HE = { submitted: 'הוגש', verified: 'אומת', pending: 'ממתין', overdue: 'בעיכוב' };
     const label = STATUS_HE[updated.status] ? `סטטוס "${updated.document_name}" → ${STATUS_HE[updated.status]}` : `עודכן מסמך "${updated.document_name}"`;
     logActivity('update', 'document', updated.id, label);
   }
   res.json(updated);
+});
+
+// ─── קליטה חכמה: מעלים קובץ בלי לבחור יעד — המערכת מזהה, מתייקת ומחזירה לפיקוח ───
+// הזרימה: חילוץ טקסט → סיווג (גוף/סוג/שנה/מועד) → decideFiling:
+//   matched  → הקובץ מצורף לסלוט הממתין המתאים
+//   create   → נוצר מסמך חדש תחת הגוף שזוהה
+//   unmatched→ נוצר מסמך תחת גוף האחזקה "ממתין לשיוך" (המשתמש משייך במסך הפיקוח)
+// כל מסמך שתויק אוטומטית מסומן auto_filed=1 עד שהמשתמש מאשר/מתקן.
+router.post('/intake', (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'לא נשלח קובץ' });
+
+    try {
+      const filePath = path.join(UPLOAD_DIR, req.file.filename);
+      const text = await extractText(filePath);
+      const entitiesList = getAll('SELECT id, name FROM financial_entities');
+      const suggestions = classifyText(text, entitiesList);
+
+      // מועמדים: סלוטים ממתינים ללא קובץ של הגוף שזוהה
+      const candidates = suggestions.issuer?.entityId
+        ? getAll(
+            `SELECT * FROM documents
+             WHERE entity_id = ? AND (file_path IS NULL OR file_path = '') AND status IN ('pending', 'overdue')`,
+            [suggestions.issuer.entityId]
+          )
+        : [];
+      const decision = decideFiling(suggestions, candidates);
+
+      let docId;
+      if (decision.action === 'matched') {
+        // תיוק לסלוט קיים — משלים שדות חסרים בלבד, לא דורס מה שכבר הוגדר
+        docId = decision.target.id;
+        runQuery(
+          `UPDATE documents
+           SET file_path = ?, year = COALESCE(year, ?), required_by_date = COALESCE(required_by_date, ?),
+               auto_filed = 1, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [req.file.filename, suggestions.year, suggestions.renewalDate, docId]
+        );
+        logActivity('update', 'document', docId, `נקלט קובץ ותויק אוטומטית אל "${decision.target.document_name}"`);
+      } else {
+        // אין סלוט מתאים — יוצרים מסמך חדש (תחת הגוף שזוהה, או גוף האחזקה)
+        let entityId = suggestions.issuer?.entityId;
+        if (!entityId) {
+          let holding = getOne('SELECT * FROM financial_entities WHERE name = ?', [HOLDING_ENTITY_NAME]);
+          if (!holding) {
+            runQuery(
+              `INSERT INTO financial_entities (name, type, category, notes)
+               VALUES (?, 'other', 'קליטה', 'נוצר אוטומטית — מסמכים שטרם שויכו לגוף')`,
+              [HOLDING_ENTITY_NAME]
+            );
+            holding = getOne('SELECT * FROM financial_entities WHERE name = ?', [HOLDING_ENTITY_NAME]);
+          }
+          entityId = holding.id;
+        }
+        const baseName = suggestions.docType
+          || req.file.originalname.replace(/\.[^.]+$/, '')
+          || 'מסמך שנקלט';
+        runQuery(
+          `INSERT INTO documents
+           (entity_id, document_name, document_type, year, required_by_date, file_path, auto_filed, notes)
+           VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+          [entityId, baseName, suggestions.docType, suggestions.year, suggestions.renewalDate, req.file.filename, 'נקלט אוטומטית דרך תיבת הקליטה']
+        );
+        const created = getOne('SELECT id FROM documents ORDER BY id DESC LIMIT 1');
+        docId = created.id;
+        logActivity('create', 'document', docId, `נקלט מסמך חדש "${baseName}" דרך תיבת הקליטה`);
+      }
+
+      const document = getOne(`
+        SELECT d.*, e.name as entity_name FROM documents d
+        JOIN financial_entities e ON d.entity_id = e.id
+        WHERE d.id = ?`, [docId]);
+
+      res.status(201).json({
+        document,
+        action: decision.action,
+        suggestions,
+        note: text.length === 0 ? 'לא זוהה טקסט — ייתכן שהקובץ סרוק (יידרש OCR בעתיד)' : null,
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 });
 
 // Upload a file (PDF/image) and attach it to a document

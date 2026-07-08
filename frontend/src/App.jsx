@@ -28,9 +28,10 @@ export default function App() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  // silent=true — רענון נתונים ברקע בלי מסך "טוען" (שמפרק את העץ ומוחק state מקומי של רכיבים)
+  const fetchData = async (opts = {}) => {
     try {
-      setLoading(true);
+      if (!opts.silent) setLoading(true);
       const [entitiesRes, docsRes, checklistRes, accountsRes] = await Promise.all([
         axios.get(`${API_URL}/entities`),
         axios.get(`${API_URL}/documents`),
@@ -217,6 +218,7 @@ export default function App() {
             documents={documents}
             checklist={checklist}
             onNavigate={setCurrentPage}
+            onRefresh={() => fetchData({ silent: true })}
           />
         )}
 
@@ -247,6 +249,7 @@ export default function App() {
             onUpdate={handleUpdateDocument}
             onDelete={handleDeleteDocument}
             onUpload={handleUploadDocument}
+            onRefresh={() => fetchData({ silent: true })}
           />
         )}
 

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 import { useReadOnly } from '../ReadOnlyContext';
+import IntakeBox from '../components/IntakeBox';
+import DocumentForm from '../components/DocumentForm';
 
 const EMPTY_DOC = {
   entity_id: '',
@@ -11,30 +13,28 @@ const EMPTY_DOC = {
   required_by_date: '',
 };
 
-export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload }) {
+// עמוד המסמכים.
+// נקודת הכניסה למסמכים היא תיבת הקליטה (IntakeBox) — זורקים קובץ, המערכת מתייקת לבד.
+// הכרטיסים משמשים לפיקוח וניהול: סטטוס, אישור תיוק אוטומטי, החלפת קובץ, עריכה.
+export default function DocumentPage({ documents, entities, onAdd, onUpdate, onDelete, onUpload, onRefresh }) {
   const readOnly = useReadOnly();
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [editingId, setEditingId] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
-  const [analyzingId, setAnalyzingId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
   const [editDate, setEditDate] = useState(''); // מועד חידוש שזוהה — ניתן לתיקון בתיבת הזיהוי
   const [formData, setFormData] = useState(EMPTY_DOC);
 
   const handleAnalyze = async (doc) => {
-    setAnalyzingId(doc.id);
     setAnalysis(null);
     try {
       const res = await axios.post(`/api/documents/${doc.id}/analyze`);
       setAnalysis({ docId: doc.id, ...res.data });
-      // מועד חידוש שזוהה → שדה נערך (ברירת מחדל: מה שזוהה, אחרת המועד הקיים)
       setEditDate(res.data.suggestions?.renewalDate || doc.required_by_date || '');
     } catch (err) {
       console.error(err);
-    } finally {
-      setAnalyzingId(null);
     }
   };
 
@@ -45,13 +45,14 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       year: s.year || doc.year,
       entity_id: s.issuer?.entityId || doc.entity_id,
       required_by_date: editDate || doc.required_by_date, // מועד החידוש (המתוקן) נשמר
+      auto_filed: 0, // המשתמש פיקח ואישר
     });
     setAnalysis(null);
   };
 
   const ALLOWED_RE = /\.(pdf|jpe?g|png|webp)$/i;
 
-  // העלאה + ניתוח אוטומטי בצעד אחד — "לזרוק קובץ וזה מזהה לבד"
+  // החלפת/העלאת קובץ לכרטיס ספציפי (המשתמש כבר בחר יעד) + זיהוי אוטומטי
   const uploadAndAnalyze = async (doc, file) => {
     if (!file) return;
     if (!ALLOWED_RE.test(file.name)) {
@@ -76,6 +77,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     e.target.value = '';
   };
 
+  // גרירה על כרטיס ספציפי = כוונה ממוקדת ("שים את זה כאן") — נתמך בשקט
   const handleDrop = (doc, e) => {
     e.preventDefault();
     setDragOverId(null);
@@ -91,6 +93,11 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       status: newStatus,
       date_filed: newStatus === 'submitted' && !doc.date_filed ? today : doc.date_filed,
     });
+  };
+
+  // אישור פיקוח בלחיצה אחת — "התיוק האוטומטי נכון"
+  const confirmAutoFiled = (doc) => {
+    onUpdate(doc.id, { ...doc, auto_filed: 0 });
   };
 
   const handleDelete = (doc) => {
@@ -136,9 +143,13 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     }
   };
 
+  const autoFiledCount = documents.filter(d => d.auto_filed).length;
+
   const filteredDocs = filterStatus === 'all'
     ? documents
-    : documents.filter(d => d.status === filterStatus);
+    : filterStatus === 'auto'
+      ? documents.filter(d => d.auto_filed)
+      : documents.filter(d => d.status === filterStatus);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -164,13 +175,9 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     <div className="page">
       <h1>📄 ניהול מסמכים</h1>
 
-      <div className="page-controls">
-        {!readOnly && (
-          <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
-            {showForm ? '❌ ביטול' : '➕ הוסף מסמך'}
-          </button>
-        )}
+      <IntakeBox entities={entities} onRefresh={onRefresh} />
 
+      <div className="page-controls">
         <div className="filter-group">
           <select
             className="filter-select"
@@ -178,79 +185,29 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="all">כל הסטטוסים ({documents.length})</option>
+            {autoFiledCount > 0 && <option value="auto">🤖 ממתינים לאישור ({autoFiledCount})</option>}
             <option value="pending">⏳ ממתינים ({documents.filter(d => d.status === 'pending').length})</option>
             <option value="submitted">✅ הוגשו ({documents.filter(d => d.status === 'submitted').length})</option>
             <option value="overdue">⚠️ בעיכוב ({documents.filter(d => d.status === 'overdue').length})</option>
           </select>
         </div>
+
+        {!readOnly && (
+          <button className="btn btn-secondary btn-small" onClick={showForm ? () => { setShowForm(false); setEditingId(null); } : openAdd}>
+            {showForm ? '❌ ביטול' : '➕ הוספה ידנית (מסמך מתוכנן)'}
+          </button>
+        )}
       </div>
 
       {showForm && (
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>גוף פיננסי *</label>
-            <select
-              required
-              value={formData.entity_id}
-              onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
-            >
-              <option value="">בחר גוף</option>
-              {entities.map(e => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>שם המסמך *</label>
-            <input
-              type="text"
-              required
-              value={formData.document_name}
-              onChange={(e) => setFormData({ ...formData, document_name: e.target.value })}
-              placeholder="לדוגמה: דוח 867"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>סוג מסמך</label>
-              <input
-                type="text"
-                value={formData.document_type}
-                onChange={(e) => setFormData({ ...formData, document_type: e.target.value })}
-                placeholder="לדוגמה: דוח מס"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>תדירות</label>
-              <select
-                value={formData.required_frequency}
-                onChange={(e) => setFormData({ ...formData, required_frequency: e.target.value })}
-              >
-                <option value="yearly">שנתי</option>
-                <option value="monthly">חודשי</option>
-                <option value="quarterly">רבעוני</option>
-                <option value="once">פעם אחת</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>תאריך הגשה נדרש</label>
-            <input
-              type="date"
-              value={formData.required_by_date}
-              onChange={(e) => setFormData({ ...formData, required_by_date: e.target.value })}
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn btn-success">💾 {editingId ? 'עדכן מסמך' : 'שמור מסמך'}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>ביטול</button>
-          </div>
-        </form>
+        <DocumentForm
+          formData={formData}
+          setFormData={setFormData}
+          entities={entities}
+          editingId={editingId}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowForm(false)}
+        />
       )}
 
       <div className="documents-container">
@@ -276,7 +233,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                 <div className="doc-info">
                   <p><strong>גוף:</strong> {doc.entity_name}</p>
                   {doc.document_type && <p><strong>סוג:</strong> {doc.document_type}</p>}
-                  {doc.required_frequency && <p><strong>תדירות:</strong> {doc.required_frequency}</p>}
+                  {doc.year && <p><strong>שנה:</strong> {doc.year}</p>}
                   {doc.required_by_date && (
                     <p>
                       <strong>להגשה:</strong> {new Date(doc.required_by_date).toLocaleDateString('he-IL')}
@@ -298,33 +255,32 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                     {doc.file_path ? (
                       <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה בקובץ</a>
                     ) : (
-                      <span className="no-file">אין קובץ מצורף</span>
+                      <span className="no-file">אין קובץ — גררו לכאן או השתמשו בתיבת הקליטה</span>
                     )}
                   </p>
-                </div>
-                {!readOnly && (<>
-                <div className="doc-upload">
-                  <label className="btn btn-small btn-upload">
-                    {uploadingId === doc.id ? '⏳ מעלה ומזהה…' : (doc.file_path ? '🔄 החלף קובץ' : '📤 העלה + זהה')}
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp"
-                      style={{ display: 'none' }}
-                      disabled={uploadingId === doc.id}
-                      onChange={(e) => handleFileChange(doc, e)}
-                    />
-                  </label>
-                  <span className="drag-hint">או גררו קובץ לכאן ✨</span>
-                  {doc.file_path && (
-                    <button
-                      className="btn btn-small btn-analyze"
-                      disabled={analyzingId === doc.id}
-                      onClick={() => handleAnalyze(doc)}
-                    >
-                      {analyzingId === doc.id ? '⏳ מנתח…' : '🔍 נתח'}
-                    </button>
+                  {!readOnly && !!doc.auto_filed && (
+                    <span className="auto-filed-badge">
+                      🤖 תויק אוטומטית — נכון?
+                      <button className="btn btn-success" onClick={() => confirmAutoFiled(doc)}>✓ אשר</button>
+                      <button className="btn btn-secondary" onClick={() => openEdit(doc)}>תקן</button>
+                    </span>
                   )}
                 </div>
+                {!readOnly && (<>
+                {doc.file_path && (
+                  <div className="doc-upload">
+                    <label className="btn btn-small btn-upload">
+                      {uploadingId === doc.id ? '⏳ מעלה ומזהה…' : '🔄 החלף קובץ'}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        style={{ display: 'none' }}
+                        disabled={uploadingId === doc.id}
+                        onChange={(e) => handleFileChange(doc, e)}
+                      />
+                    </label>
+                  </div>
+                )}
 
                 {analysis && analysis.docId === doc.id && (
                   <div className="analysis-box">

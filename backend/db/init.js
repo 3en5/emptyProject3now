@@ -44,6 +44,7 @@ async function initDatabase() {
 
     // מיגרציות קלות — הוספת עמודות חדשות ל-DB קיים (ALTER לא נכלל ב-IF NOT EXISTS)
     ensureColumn('documents', 'year', 'INTEGER');
+    ensureColumn('documents', 'auto_filed', 'INTEGER DEFAULT 0'); // תויק אוטומטית — ממתין לפיקוח המשתמש
     ensureColumn('financial_entities', 'active_from', 'DATE');
     ensureColumn('financial_entities', 'active_until', 'DATE');
 

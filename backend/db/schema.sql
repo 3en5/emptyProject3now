@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS documents (
   status TEXT DEFAULT 'pending',
   notes TEXT,
   file_path TEXT,
+  auto_filed INTEGER DEFAULT 0,  -- תויק אוטומטית דרך תיבת הקליטה — ממתין לאישור/פיקוח
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (entity_id) REFERENCES financial_entities(id)

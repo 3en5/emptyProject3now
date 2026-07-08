@@ -1,7 +1,9 @@
 import { getUrgency, urgencyMeta, isAlerting } from '../utils/deadlines';
 import UpdateChecker from './UpdateChecker';
+import IntakeBox from './IntakeBox';
 
-export default function Dashboard({ entities, documents, checklist, onNavigate }) {
+export default function Dashboard({ entities, documents, checklist, onNavigate, onRefresh }) {
+  const autoFiled = documents.filter(d => d.auto_filed);
   const pendingDocs = documents.filter(d => d.status === 'pending').length;
   const completedDocs = documents.filter(d => d.status === 'submitted').length;
   const pendingTasks = checklist.filter(t => t.status === 'pending').length;
@@ -41,6 +43,26 @@ export default function Dashboard({ entities, documents, checklist, onNavigate }
 
   return (
     <div className="dashboard">
+      <IntakeBox entities={entities} onRefresh={onRefresh} />
+
+      {autoFiled.length > 0 && (
+        <div className="dashboard-section alerts-section">
+          <h2>🤖 תויקו אוטומטית — ממתינים לאישור שלך ({autoFiled.length})</h2>
+          <div className="pending-list">
+            {autoFiled.slice(0, 5).map(d => (
+              <div key={d.id} className="pending-item alert-item" onClick={() => onNavigate('documents')}>
+                <span>📄 {d.document_name}</span>
+                <span className="entity-badge">{d.entity_name}</span>
+                {d.year && <span className="date-badge">{d.year}</span>}
+              </div>
+            ))}
+            <button className="view-all-btn" onClick={() => onNavigate('documents')}>
+              לפיקוח ואישור
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="stats-grid">
         <div className="stat-card">
           <h3>📊 סך הכל גופים פיננסיים</h3>
