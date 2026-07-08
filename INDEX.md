@@ -160,9 +160,10 @@
 - סטטוסים/צבעים: מוגדרים בתוך `DocumentPage.jsx` (`getStatusBadge`, `getStatusColor`)
 
 ### העלאת קבצים למסמכים
-- Backend: `backend/upload.js` (multer) + endpoints `/:id/upload` ו-`/:id/file` ב-`routes/documents.js`
-- Frontend: כפתור העלאה + קישור צפייה ב-`DocumentPage.jsx`; handler `handleUploadDocument` ב-`App.jsx`
-- אחסון: `backend/uploads/` (ב-`.gitignore`). שם קובץ: `doc_<id>_<timestamp>.<ext>`
+- **הדרך הראשית: תיבת הקליטה** (ראו "קליטה חכמה" למטה). לכרטיס ספציפי: "🔄 החלף קובץ" (רק בכרטיס שכבר יש בו קובץ) או גרירה ממוקדת לכרטיס
+- Backend: `backend/upload.js` (multer) + endpoints `/intake`, `/:id/upload` ו-`/:id/file` ב-`routes/documents.js`
+- Frontend: `IntakeBox.jsx` + `DocumentPage.jsx`; handler `handleUploadDocument` ב-`App.jsx`
+- אחסון: `backend/uploads/` (ב-`.gitignore`). שם קובץ: `doc_<id>_<timestamp>.<ext>` (קליטה: `doc_x_<timestamp>`)
 
 ### קליטה חכמה ותיוק אוטומטי (משאלה #1 — מומש במלואו)
 **העיקרון: מקום אחד לזרוק אליו מסמך. המערכת מבינה, מתייקת, והמשתמש רק מפקח.**
