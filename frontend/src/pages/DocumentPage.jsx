@@ -45,6 +45,9 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       year: s.year || doc.year,
       entity_id: s.issuer?.entityId || doc.entity_id,
       required_by_date: editDate || doc.required_by_date, // מועד החידוש (המתוקן) נשמר
+      doc_date: s.docDate || doc.doc_date,
+      summary: s.summary || doc.summary,
+      amounts: s.amounts?.length ? s.amounts : doc.amounts,
       auto_filed: 0, // המשתמש פיקח ואישר
     });
     setAnalysis(null);
@@ -250,6 +253,20 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                   {doc.date_filed && (
                     <p><strong>הוגש:</strong> {new Date(doc.date_filed).toLocaleDateString('he-IL')}</p>
                   )}
+                  {doc.doc_date && (
+                    <p><strong>תאריך המסמך:</strong> {new Date(doc.doc_date).toLocaleDateString('he-IL')}</p>
+                  )}
+                  {doc.summary && (
+                    <p className="doc-summary"><strong>📝 תקציר:</strong> {doc.summary}</p>
+                  )}
+                  {doc.amounts?.length > 0 && (
+                    <div className="doc-amounts">
+                      <strong>💰 סכומים:</strong>
+                      <ul>
+                        {doc.amounts.map((a, i) => <li key={i}>{a}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <p className="doc-file">
                     <strong>קובץ:</strong>{' '}
                     {doc.file_path ? (
@@ -292,6 +309,9 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       <li>גוף: <strong>{analysis.suggestions.issuer?.name || '—'}</strong></li>
                       <li>סוג מסמך: <strong>{analysis.suggestions.docType || '—'}</strong></li>
                       <li>שנה: <strong>{analysis.suggestions.year || '—'}</strong></li>
+                      {analysis.suggestions.docDate && (
+                        <li>תאריך המסמך: <strong>{new Date(analysis.suggestions.docDate).toLocaleDateString('he-IL')}</strong></li>
+                      )}
                       <li className="analysis-date">
                         מועד חידוש/הגשה:{' '}
                         <input
@@ -304,6 +324,17 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                           ? <span className="analysis-detected">✓ זוהה אוטומטית</span>
                           : <span className="analysis-note-inline">לא זוהה — אפשר למלא ידנית</span>}
                       </li>
+                      {analysis.suggestions.summary && (
+                        <li>📝 תקציר: <strong>{analysis.suggestions.summary}</strong></li>
+                      )}
+                      {analysis.suggestions.amounts?.length > 0 && (
+                        <li>
+                          💰 סכומים:
+                          <ul className="analysis-amounts">
+                            {analysis.suggestions.amounts.map((a, i) => <li key={i}>{a}</li>)}
+                          </ul>
+                        </li>
+                      )}
                     </ul>
                     <button className="btn btn-small btn-success" onClick={() => applySuggestion(doc, analysis.suggestions)}>
                       ✅ החל ושמור

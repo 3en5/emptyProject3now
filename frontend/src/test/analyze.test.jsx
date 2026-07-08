@@ -16,6 +16,17 @@ const SUGGESTION = {
   note: null,
 };
 
+const SUGGESTION_WITH_SUMMARY = {
+  suggestions: {
+    issuer: { name: 'IBKR', entityId: 2 }, docType: 'Annual Activity Statement', year: 2025,
+    docDate: '2025-04-15', renewalDate: '2027-03-31', confidence: 'high', matchedTerms: [],
+    summary: 'דוח פעילות שנתי של IBKR לשנת 2025.',
+    amounts: ['שווי תיק: $12,340', 'עמלות שנתיות: $45'],
+  },
+  extractedChars: 42,
+  note: null,
+};
+
 // מדמה החלפת קובץ על כרטיס (הדרך הממוקדת) — הניתוח רץ אוטומטית אחריה
 async function replaceFileOnCard(container, onUploadMock) {
   const input = container.querySelector('.document-card input[type="file"]');
@@ -83,6 +94,39 @@ describe('DocumentPage — זיהוי אוטומטי בכרטיס (החלפת ק
     expect(payload.entity_id).toBe(2);
     expect(payload.required_by_date).toBe('2028-01-15'); // התיקון נשמר
     expect(payload.auto_filed).toBe(0); // אושר בפיקוח
+  });
+
+  test('תקציר, תאריך מסמך וסכומים מוצגים בתיבת הניתוח ונשמרים עם "החל ושמור"', async () => {
+    vi.mocked(axios.post).mockResolvedValue({ data: SUGGESTION_WITH_SUMMARY });
+    const onUpload = vi.fn().mockResolvedValue({});
+    const onUpdate = vi.fn();
+    const { container } = render(
+      <DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={onUpload} />
+    );
+    await replaceFileOnCard(container, onUpload);
+
+    expect(await screen.findByText(/דוח פעילות שנתי של IBKR לשנת 2025/)).toBeInTheDocument();
+    expect(screen.getByText(/שווי תיק: \$12,340/)).toBeInTheDocument();
+    expect(screen.getByText(/15\.4\.2025/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /החל ושמור/ }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    const [, payload] = onUpdate.mock.calls[0];
+    expect(payload.summary).toBe('דוח פעילות שנתי של IBKR לשנת 2025.');
+    expect(payload.doc_date).toBe('2025-04-15');
+    expect(payload.amounts).toEqual(['שווי תיק: $12,340', 'עמלות שנתיות: $45']);
+  });
+
+  test('תקציר וסכומים שכבר נשמרו על המסמך מוצגים גם בלי לפתוח ניתוח', () => {
+    const docWithSummary = [{
+      ...documents[0],
+      doc_date: '2025-04-15',
+      summary: 'דוח פעילות שנתי של IBKR לשנת 2025.',
+      amounts: ['שווי תיק: $12,340'],
+    }];
+    render(<DocumentPage documents={docWithSummary} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    expect(screen.getByText(/דוח פעילות שנתי של IBKR לשנת 2025/)).toBeInTheDocument();
+    expect(screen.getByText(/שווי תיק: \$12,340/)).toBeInTheDocument();
   });
 
   test('מסמך שתויק אוטומטית מציג תג פיקוח, ו"אשר" מנקה את הדגל', async () => {

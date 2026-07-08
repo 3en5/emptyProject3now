@@ -202,4 +202,50 @@ describe('POST /api/documents/intake — קליטה ותיוק מקצה-לקצה
     const countAfterSecond = getOne('SELECT COUNT(*) as c FROM documents').c;
     assert.equal(countAfterSecond, countAfterFirst); // לא נוסף מסמך
   });
+
+  test('קליטה בלי GPT (כללים בלבד) → amounts מוחזר כמערך ריק, לא קורס', async () => {
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('Interactive Brokers Annual Activity Statement 2025'), 'ibkr2.pdf');
+    assert.equal(res.status, 201);
+    assert.deepEqual(res.body.document.amounts, []); // parsed מ-JSON, לא string גולמי
+  });
+});
+
+describe('תקציר, סכומים ותאריך מסמך (summary/amounts/doc_date)', () => {
+  test('PUT שומר summary/amounts/doc_date, ו-GET מחזיר amounts כמערך מפוענח', async () => {
+    await request(app).post('/api/entities').send({ name: 'הראל ביטוח', type: 'insurance' });
+    const ent = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    const created = await request(app).post('/api/documents').send({
+      entity_id: ent.id, document_name: 'פוליסת ביטוח חיים', year: 2025,
+    });
+
+    const res = await request(app).put(`/api/documents/${created.body.id}`).send({
+      ...created.body,
+      doc_date: '2025-03-01',
+      summary: 'פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים.',
+      amounts: ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪'],
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.doc_date, '2025-03-01');
+    assert.equal(res.body.summary, 'פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים.');
+    assert.deepEqual(res.body.amounts, ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪']);
+
+    // גם ב-GET /api/documents הרשימה חוזרת עם amounts כמערך (לא JSON string גולמי)
+    const list = await request(app).get('/api/documents');
+    const found = list.body.find((d) => d.id === created.body.id);
+    assert.deepEqual(found.amounts, ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪']);
+  });
+
+  test('PUT בלי summary/amounts לא דורס ערכים קיימים (COALESCE)', async () => {
+    await request(app).post('/api/entities').send({ name: 'מגדל ביטוח', type: 'insurance' });
+    const ent = getOne('SELECT * FROM financial_entities ORDER BY id DESC LIMIT 1');
+    const created = await request(app).post('/api/documents').send({ entity_id: ent.id, document_name: 'מסמך', year: 2025 });
+    await request(app).put(`/api/documents/${created.body.id}`).send({ ...created.body, summary: 'תקציר מקורי', amounts: ['100 ₪'] });
+
+    // עדכון סטטוס בלבד — בלי summary/amounts בגוף הבקשה
+    const res = await request(app).put(`/api/documents/${created.body.id}`).send({ document_name: 'מסמך', status: 'submitted' });
+    assert.equal(res.body.summary, 'תקציר מקורי'); // לא נדרס
+    assert.deepEqual(res.body.amounts, ['100 ₪']); // לא נדרס
+  });
 });

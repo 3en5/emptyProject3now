@@ -222,9 +222,25 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                       <a href={`/api/documents/${r.existing.id}/file`} target="_blank" rel="noopener noreferrer">📎 צפייה בקיים</a>
                     </p>
                   ) : r.saved ? (
-                    <p className="intake-saved">✅ אושר ונשמר — {r.document.document_name} ({r.document.entity_name})</p>
+                    <>
+                      <p className="intake-saved">✅ אושר ונשמר — {r.document.document_name} ({r.document.entity_name})</p>
+                      {r.document.summary && <p className="intake-summary">📝 {r.document.summary}</p>}
+                    </>
                   ) : (
                     <div className="intake-fields">
+                      {(r.document.doc_date || r.document.summary || r.document.amounts?.length > 0) && (
+                        <div className="intake-summary-box">
+                          {r.document.doc_date && (
+                            <p className="intake-doc-date">📅 תאריך המסמך: <strong>{new Date(r.document.doc_date).toLocaleDateString('he-IL')}</strong></p>
+                          )}
+                          {r.document.summary && <p className="intake-summary">📝 {r.document.summary}</p>}
+                          {r.document.amounts?.length > 0 && (
+                            <ul className="intake-amounts">
+                              {r.document.amounts.map((a, i) => <li key={i}>💰 {a}</li>)}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                       <label>
                         גוף
                         <div className="intake-entity-row">

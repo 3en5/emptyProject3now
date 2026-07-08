@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS documents (
   file_path TEXT,
   file_hash TEXT,                -- SHA-256 של הקובץ המצורף — לזיהוי העלאות כפולות
   auto_filed INTEGER DEFAULT 0,  -- תויק אוטומטית דרך תיבת הקליטה — ממתין לאישור/פיקוח
+  doc_date DATE,                 -- התאריך שמופיע על המסמך עצמו (זוהה ע"י GPT)
+  summary TEXT,                  -- תקציר קצר של המסמך (זוהה ע"י GPT)
+  amounts TEXT,                  -- סכומים שזוהו במסמך, כ-JSON array של מחרוזות
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (entity_id) REFERENCES financial_entities(id)

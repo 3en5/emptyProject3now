@@ -79,6 +79,36 @@
   margin-top: 0.3rem;
 }
 
+/* תקציר, תאריך מסמך וסכומים שזוהו ע"י GPT */
+.intake-summary-box {
+  flex-basis: 100%;
+  background: #f7f9fb;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.intake-doc-date {
+  margin: 0 0 0.3rem;
+}
+
+.intake-summary {
+  margin: 0 0 0.3rem;
+  color: #444;
+}
+
+.intake-amounts {
+  list-style: none;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.intake-amounts li {
+  padding: 0.1rem 0;
+}
+
 .intake-results {
   margin-top: 1rem;
   display: flex;

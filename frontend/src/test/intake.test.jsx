@@ -183,4 +183,25 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     expect(await screen.findByText(/לא זוהה גוף — נא לשייך/)).toBeInTheDocument();
     expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
   });
+
+  test('תקציר, תאריך מסמך וסכומים שזוהו ע"י GPT מוצגים בשורת התוצאה', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        ...INTAKE_MATCHED,
+        document: {
+          ...INTAKE_MATCHED.document,
+          doc_date: '2025-03-01',
+          summary: 'פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים.',
+          amounts: ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪'],
+        },
+      },
+    });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('policy.pdf');
+
+    expect(await screen.findByText(/פוליסת ביטוח חיים של הראל/)).toBeInTheDocument();
+    expect(screen.getByText(/פרמיה חודשית: 340 ₪/)).toBeInTheDocument();
+    expect(screen.getByText(/סכום ביטוח: 500,000 ₪/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.3\.2025/)).toBeInTheDocument(); // תאריך המסמך בפורמט עברי
+  });
 });

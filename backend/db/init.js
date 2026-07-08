@@ -46,6 +46,9 @@ async function initDatabase() {
     ensureColumn('documents', 'year', 'INTEGER');
     ensureColumn('documents', 'auto_filed', 'INTEGER DEFAULT 0'); // תויק אוטומטית — ממתין לפיקוח המשתמש
     ensureColumn('documents', 'file_hash', 'TEXT'); // SHA-256 לזיהוי כפילויות
+    ensureColumn('documents', 'doc_date', 'DATE');  // תאריך המסמך עצמו (GPT)
+    ensureColumn('documents', 'summary', 'TEXT');   // תקציר קצר (GPT)
+    ensureColumn('documents', 'amounts', 'TEXT');   // סכומים, JSON array (GPT)
     ensureColumn('financial_entities', 'active_from', 'DATE');
     ensureColumn('financial_entities', 'active_until', 'DATE');
 

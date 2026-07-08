@@ -112,4 +112,27 @@ describe('understandDocument — היברידי', () => {
     assert.equal(r.issuer.suggestedType, 'insurance');
     assert.equal(r.renewalDate, null); // '' → null
   });
+
+  test('GPT מחזיר תקציר, סכומים ותאריך מסמך → מועברים כמו שהם', async () => {
+    const aiFn = async () => ({
+      issuerName: 'הראל', docType: 'פוליסת ביטוח חיים', entityType: 'insurance',
+      year: 2025, docDate: '2025-03-01', renewalDate: '2027-12-31',
+      summary: 'פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים.',
+      amounts: ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪'],
+      confidence: 'high',
+    });
+    const file = write('policy.pdf', makePdf('unrecognized scanned content xyz'));
+    const r = await understandDocument(file, ENTITIES, { aiFn, available: true });
+    assert.equal(r.docDate, '2025-03-01');
+    assert.equal(r.summary, 'פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים.');
+    assert.deepEqual(r.amounts, ['פרמיה חודשית: 340 ₪', 'סכום ביטוח: 500,000 ₪']);
+  });
+
+  test('כללים מקומיים (בלי GPT) → summary/amounts/docDate ריקים, לא קורסים', async () => {
+    const file = write('rules-only.pdf', makePdf('Interactive Brokers Annual Activity Statement 2025'));
+    const r = await understandDocument(file, ENTITIES, { available: false });
+    assert.equal(r.method, 'rules');
+    assert.equal(r.summary, undefined);
+    assert.equal(r.amounts, undefined);
+  });
 });

@@ -118,6 +118,33 @@
   font-style: italic;
 }
 
+.doc-summary {
+  color: #444;
+  font-style: italic;
+}
+
+.doc-amounts {
+  margin-bottom: 0.5rem;
+}
+
+.doc-amounts ul {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.doc-amounts li {
+  padding: 0.1rem 0;
+}
+
+.analysis-amounts {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
 .doc-upload {
   margin-top: 0.75rem;
 }

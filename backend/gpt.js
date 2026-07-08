@@ -17,10 +17,17 @@ const SCHEMA = {
     docType: { type: 'string', description: "סוג המסמך בעברית (למשל 'טופס 867', 'פוליסת ביטוח חיים', 'אישור טסט'), או ''" },
     entityType: { type: 'string', enum: ['bank', 'insurance', 'investment', 'realty', 'loan', 'vehicle', 'license', 'other', ''], description: 'סוג הגוף הפיננסי' },
     year: { type: 'integer', description: 'שנת המס/הדיווח של המסמך, או 0 אם אין' },
-    renewalDate: { type: 'string', description: "מועד חידוש/תפוגה/הגשה בפורמט YYYY-MM-DD, או '' אם אין" },
+    docDate: { type: 'string', description: "התאריך שמופיע על המסמך עצמו (תאריך הפקה/חתימה), בפורמט YYYY-MM-DD, או '' אם אין" },
+    renewalDate: { type: 'string', description: "מועד חידוש/תפוגה/הגשה עתידי (שונה מ-docDate), בפורמט YYYY-MM-DD, או '' אם אין" },
+    summary: { type: 'string', description: "תקציר קצר בעברית (1-2 משפטים): מה המסמך, מה הגוף, ומה עיקר תוכנו" },
+    amounts: {
+      type: 'array',
+      items: { type: 'string', description: "שורת סכום כפי שמופיעה במסמך, כולל הקשר, למשל 'פרמיה חודשית: 340 ₪' או 'יתרה לתשלום: 12,500 ₪'" },
+      description: 'כל הסכומים הכספיים המשמעותיים במסמך (עד 8), עם הקשר קצר לכל אחד. מערך ריק אם אין סכומים',
+    },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'רמת הביטחון בזיהוי' },
   },
-  required: ['issuerName', 'docType', 'entityType', 'year', 'renewalDate', 'confidence'],
+  required: ['issuerName', 'docType', 'entityType', 'year', 'docDate', 'renewalDate', 'summary', 'amounts', 'confidence'],
 };
 
 const MEDIA_TYPES = {
@@ -54,17 +61,21 @@ function buildFilePart(filePath) {
   return { type: 'image_url', image_url: { url: `data:${mediaType};base64,${data}` } };
 }
 
-const PROMPT = `אתה עוזר לזהות מסמכים פיננסיים ישראליים. קרא את המסמך המצורף (ייתכן שהוא סרוק או בעברית) והחזר את השדות המובנים בלבד.
+const PROMPT = `אתה עוזר לזהות ולסכם מסמכים פיננסיים ישראליים. קרא את המסמך המצורף (ייתכן שהוא סרוק או בעברית) והחזר את השדות המובנים בלבד.
 - issuerName: שם הגוף שהנפיק (בנק, חברת ביטוח, בית השקעות, רשות וכו').
 - docType: סוג המסמך בעברית.
 - entityType: סוג הגוף מתוך הרשימה.
 - year: שנת המס/הדיווח (מספר), או 0.
-- renewalDate: מועד חידוש/תפוגה אם קיים, בפורמט YYYY-MM-DD.
+- docDate: התאריך שמופיע על המסמך עצמו (תאריך הפקה/חתימה) — לא בהכרח מועד חידוש.
+- renewalDate: מועד חידוש/תפוגה/הגשה עתידי, אם שונה מ-docDate.
+- summary: תקציר קצר וממוקד בעברית (1-2 משפטים) — מה המסמך, מי הגוף, ומה עיקר התוכן (למשל: "פוליסת ביטוח חיים של הראל, מחדשת כיסוי קיים בפרמיה חודשית קבועה").
+- amounts: כל הסכומים הכספיים המשמעותיים במסמך כפי שהם מופיעים בו (עד 8), כל אחד עם הקשר קצר. אם אין סכומים — מערך ריק.
 - confidence: כמה אתה בטוח בזיהוי.
-אם משהו לא ברור — החזר '' (או 0 לשנה). אל תמציא.`;
+אם משהו לא ברור — החזר '' (או 0 לשנה, [] לסכומים). אל תמציא נתונים.`;
 
 /**
- * understandWithGPT(filePath) → אובייקט בשמות הכלליים (issuerName/docType/entityType/year/renewalDate/confidence)
+ * understandWithGPT(filePath) → אובייקט בשמות הכלליים
+ * (issuerName/docType/entityType/year/docDate/renewalDate/summary/amounts/confidence)
  * או null אם אין מפתח / הקובץ לא נתמך / שגיאה.
  */
 export async function understandWithGPT(filePath) {
@@ -76,7 +87,7 @@ export async function understandWithGPT(filePath) {
   try {
     const res = await c.chat.completions.create({
       model: MODEL,
-      max_completion_tokens: 1000,
+      max_completion_tokens: 1500, // מרחב נוסף לתקציר + רשימת סכומים
       response_format: {
         type: 'json_schema',
         json_schema: { name: 'document_fields', strict: true, schema: SCHEMA },

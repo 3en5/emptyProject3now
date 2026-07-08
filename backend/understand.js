@@ -19,6 +19,7 @@ function matchEntity(issuerName, entities) {
 }
 
 // ממיר את פלט GPT (issuerName/docType/entityType/...) למבנה ההצעות של classifyText.
+// summary/amounts/docDate — בונוס שרק ל-GPT יש (הכללים לא מנתחים תוכן חופשי).
 function aiToSuggestions(c, entities) {
   return {
     issuer: c.issuerName
@@ -26,7 +27,10 @@ function aiToSuggestions(c, entities) {
       : null,
     docType: c.docType || null,
     year: c.year || null,
+    docDate: c.docDate || null,
     renewalDate: c.renewalDate || null,
+    summary: c.summary || null,
+    amounts: Array.isArray(c.amounts) ? c.amounts : [],
     confidence: c.confidence || 'low',
     matchedTerms: [],
   };

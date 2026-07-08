@@ -52,8 +52,8 @@
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
 | `backend/classify.js` | מנוע סיווג מבוסס-כללים (טהור): `classifyText` → גוף/סוג/שנה/מועד/ביטחון + `suggestedType`; תומך בעברית הפוכה |
-| `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs). פעיל רק עם `OPENAI_API_KEY` |
-| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים קודם, נפילה ל-GPT כשהביטחון נמוך. מחזיר מבנה `classifyText` + `method` |
+| `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך. פעיל רק עם `OPENAI_API_KEY` |
+| `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate` |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס | `/api/checklists` |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
@@ -127,15 +127,15 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/**כפילות**) |
-| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT (פונקציית ה-AI מוזרקת, בלי רשת) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/**summary+amounts+doc_date**) |
+| `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
 | `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
-| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים |
-| `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח) |
+| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, **תקציר/סכומים/תאריך מסמך** |
+| `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
 | `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה ופיקוח |
@@ -172,11 +172,13 @@
 
 ### קליטה חכמה ותיוק אוטומטי (משאלה #1 — מומש במלואו)
 **העיקרון: מקום אחד לזרוק אליו מסמך. המערכת מבינה, מתייקת, והמשתמש רק מפקח.**
-- **הבנה היברידית** (`backend/understand.js`): כללים מקומיים קודם (`extract.js`+`classify.js`, חינם), ונפילה ל-GPT (`gpt.js`, ראייה) לסרוקים/עברית/פורמט לא מוכר — רק כשהביטחון נמוך ורק עם `OPENAI_API_KEY`
-- כללים: ISSUERS/DOC_TYPES fingerprints + חילוץ שנה + **מועד חידוש** (מילות עוגן) + **עברית הפוכה** + `suggestedType`
-- GPT: `structured outputs` → `{issuerName, docType, entityType, year, renewalDate, confidence}` (מודל `gpt-4o`, ניתן לעקיפה ב-`FINANCE_GPT_MODEL`)
+- **הבנה היברידית** (`backend/understand.js`): כללים מקומיים תמיד רצים ראשונים (`extract.js`+`classify.js`, חינם ומיידי). **כשמוגדר `OPENAI_API_KEY` — GPT רץ תמיד** (לא רק בביטחון נמוך; ראה LESSONS #6 — דילוג-על-סמך-ביטחון-כללים חשוף להתאמות-שווא). הכללים משמשים גיבוי אם GPT נכשל (`aiError`)
+- כללים: ISSUERS/DOC_TYPES fingerprints (**מונחים ספציפיים בלבד** — לא מילים כלליות) + חילוץ שנה + **מועד חידוש** (מילות עוגן) + **עברית הפוכה** + `suggestedType`
+- GPT: `structured outputs` → `{issuerName, docType, entityType, year, docDate, renewalDate, summary, amounts, confidence}` (מודל `gpt-4o`, ניתן לעקיפה ב-`FINANCE_GPT_MODEL`). **summary/amounts/docDate בונוס בלעדי ל-GPT** — הכללים לא מפיקים אותם
+- **סטטוס גלוי:** `GET /api/system/ai-status` — האם המפתח מוגדר; באנר בתיבת הקליטה + תג "🤖 GPT / 📋 כללים" לכל מסמך (שקיפות: המשתמש רואה מיד אם GPT באמת רץ)
 - החלטת תיוק: `backend/intake.js` (`decideFiling`) — ניקוד מול סלוטים פנויים → תיוק לקיים / יצירת חדש / "ממתין לשיוך"
 - **זיהוי כפילויות:** `documents.file_hash` (SHA-256) — קובץ שכבר קיים מוחזר כ-`action: 'duplicate'` ולא מועלה שוב
+- **תקציר, סכומים ותאריך המסמך** (בונוס GPT): `documents.summary` (תקציר קצר) · `documents.amounts` (JSON array של שורות סכום) · `documents.doc_date` (תאריך שמופיע על המסמך עצמו, שונה מ-`required_by_date`/מועד חידוש). מוצגים בכרטיס המסמך, בתיבת הניתוח ובשורת הקליטה
 - Endpoints: `POST /api/documents/intake` (קליטה+תיוק+דדופ) · `POST /:id/analyze` (ניתוח חוזר)
 - Frontend: `components/IntakeBox.jsx` — זריקת קבצים מרובים → שורת תוצאה עם שדות תיקון + "אשר ושמור"; כפתור "🗑️ השלך" (מחיקה+העלאה מחדש); התראת כפול עם קישור לקיים
 - **גוף חדש מהשורה:** גוף שזוהה אך לא קיים → "➕ גוף חדש" עם שם+סוג ממולאים מהזיהוי, ניתן לעריכה; יוצר ומשייך מיד
