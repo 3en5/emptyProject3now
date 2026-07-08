@@ -51,6 +51,7 @@
 | 36 | **סיום הקמה לשימוש** — הגשת frontend מהשרת (פקודה+כתובת אחת, `npm run app`), `inventory.js` משותף, `starter`/`reset`; 111 טסטים | `app.js`, `db/inventory.js`, `db/starter.js`, `db/reset.js`, `package.json`, `README.md` | 2026-07-08 |
 | 37 | **פורט 3018 + הרצה כשירות** — שינוי הפורט מ-3001 ל-3018 בכל המקומות; שירות pm2 (autorestart + boot), סקריפטי `service:*` | `server.js`, `vite.config.js`, `playwright.config.js`, `ecosystem.config.cjs`, `package.json` | 2026-07-08 |
 | 38 | **זיהוי אוטומטי + drag&drop** — ניתוח רץ לבד מיד עם ההעלאה; גרירת קובץ לכרטיס; 112 טסטים | `DocumentPage.jsx`, `styles/cards.css` | 2026-07-08 |
+| 39 | **זיהוי אוטומטי של מועד חידוש + תיקון נשמר** — חילוץ תאריך תוקף מטקסט המסמך (מילות עוגן: "בתוקף עד", "תוקף עד", "מועד חידוש"...), שדה תאריך נערך בתיבת הזיהוי, "החל ושמור" שומר את המועד (כולל תיקון ידני) ל-`required_by_date`; 116 טסטים | `classify.js`, `DocumentPage.jsx`, `styles/cards.css`, `classify.test.js`, `analyze.test.jsx`, `smoke.spec.js` | 2026-07-08 |
 
 ---
 
@@ -58,7 +59,7 @@
 
 | מה | סטטוס | הערות |
 |----|-------|-------|
-| — | — | אין כרגע משימה פעילה |
+| _(אין משימה פעילה)_ | | |
 
 > כשמתחילים משימה — להוסיף אותה כאן. כשמסיימים — להעביר ל"הושלם".
 

@@ -152,9 +152,9 @@
 
 ### זיהוי חכם של מסמכים (משאלה #1, MVP כללים)
 - חילוץ טקסט: `backend/extract.js` (`pdf-parse`)
-- סיווג: `backend/classify.js` (ISSUERS/DOC_TYPES fingerprints + חילוץ שנה) — **טהור, קל להרחיב**
+- סיווג: `backend/classify.js` (ISSUERS/DOC_TYPES fingerprints + חילוץ שנה + **חילוץ מועד חידוש** לפי מילות עוגן "בתוקף עד"/"מועד חידוש"...) — **טהור, קל להרחיב**
 - Endpoint: `POST /api/documents/:id/analyze` ב-`routes/documents.js`
-- Frontend (`DocumentPage.jsx`): **ניתוח אוטומטי מיד עם ההעלאה** (`uploadAndAnalyze`) + **גרירה-ושחרור** לכרטיס; כפתור "🔍 נתח" לניתוח חוזר; תיבת הצעות + "החל הצעה"
+- Frontend (`DocumentPage.jsx`): **ניתוח אוטומטי מיד עם ההעלאה** (`uploadAndAnalyze`) + **גרירה-ושחרור** לכרטיס; כפתור "🔍 נתח" לניתוח חוזר; תיבת הצעות + **שדה מועד חידוש נערך** (זוהה אוטומטית, ניתן לתיקון) + "החל ושמור" ששומר את המועד ל-`required_by_date`
 - ⚠️ מסמך סרוק (תמונה) → אין טקסט → ביטחון נמוך (OCR עתידי)
 
 ### משימות שנתיות

@@ -20,6 +20,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
   const [analyzingId, setAnalyzingId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const [analysis, setAnalysis] = useState(null); // { docId, suggestions, note }
+  const [editDate, setEditDate] = useState(''); // מועד חידוש שזוהה — ניתן לתיקון בתיבת הזיהוי
   const [formData, setFormData] = useState(EMPTY_DOC);
 
   const handleAnalyze = async (doc) => {
@@ -28,6 +29,8 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
     try {
       const res = await axios.post(`/api/documents/${doc.id}/analyze`);
       setAnalysis({ docId: doc.id, ...res.data });
+      // מועד חידוש שזוהה → שדה נערך (ברירת מחדל: מה שזוהה, אחרת המועד הקיים)
+      setEditDate(res.data.suggestions?.renewalDate || doc.required_by_date || '');
     } catch (err) {
       console.error(err);
     } finally {
@@ -41,6 +44,7 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
       document_name: s.docType || doc.document_name,
       year: s.year || doc.year,
       entity_id: s.issuer?.entityId || doc.entity_id,
+      required_by_date: editDate || doc.required_by_date, // מועד החידוש (המתוקן) נשמר
     });
     setAnalysis(null);
   };
@@ -332,12 +336,22 @@ export default function DocumentPage({ documents, entities, onAdd, onUpdate, onD
                       <li>גוף: <strong>{analysis.suggestions.issuer?.name || '—'}</strong></li>
                       <li>סוג מסמך: <strong>{analysis.suggestions.docType || '—'}</strong></li>
                       <li>שנה: <strong>{analysis.suggestions.year || '—'}</strong></li>
+                      <li className="analysis-date">
+                        מועד חידוש/הגשה:{' '}
+                        <input
+                          type="date"
+                          className="analysis-date-input"
+                          value={editDate || ''}
+                          onChange={(e) => setEditDate(e.target.value)}
+                        />
+                        {analysis.suggestions.renewalDate
+                          ? <span className="analysis-detected">✓ זוהה אוטומטית</span>
+                          : <span className="analysis-note-inline">לא זוהה — אפשר למלא ידנית</span>}
+                      </li>
                     </ul>
-                    {analysis.suggestions.confidence !== 'low' && (
-                      <button className="btn btn-small btn-success" onClick={() => applySuggestion(doc, analysis.suggestions)}>
-                        ✅ החל הצעה
-                      </button>
-                    )}
+                    <button className="btn btn-small btn-success" onClick={() => applySuggestion(doc, analysis.suggestions)}>
+                      ✅ החל ושמור
+                    </button>
                     <button className="btn btn-small btn-secondary" onClick={() => setAnalysis(null)}>סגור</button>
                   </div>
                 )}

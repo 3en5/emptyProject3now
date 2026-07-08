@@ -177,6 +177,24 @@
   padding: 0.2rem 0;
 }
 
+.analysis-date-input {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #16a085;
+  border-radius: 4px;
+  font-family: inherit;
+  margin: 0 0.4rem;
+}
+
+.analysis-detected {
+  color: var(--success);
+  font-size: 0.8rem;
+}
+
+.analysis-note-inline {
+  color: #999;
+  font-size: 0.8rem;
+}
+
 .doc-actions {
   display: flex;
   gap: 0.75rem;

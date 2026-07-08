@@ -57,3 +57,25 @@ describe('classifyText', () => {
     assert.equal(r.year, null);
   });
 });
+
+describe('חילוץ מועד חידוש (renewalDate)', () => {
+  test('פוליסת ביטוח: "בתוקף עד 31/12/2027" → 2027-12-31', () => {
+    const r = classifyText('פוליסת ביטוח מקיף — בתוקף עד 31/12/2027', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.renewalDate, '2027-12-31');
+  });
+
+  test('טסט רכב: "תוקף עד 15.08.2026" → 2026-08-15', () => {
+    const r = classifyText('אישור מבחן רכב (טסט) תוקף עד 15.08.2026', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.renewalDate, '2026-08-15');
+  });
+
+  test('פורמט ISO אחרי מילת עוגן: "מועד חידוש 2027-03-01"', () => {
+    const r = classifyText('רישיון כלי יריה — מועד חידוש 2027-03-01', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.renewalDate, '2027-03-01');
+  });
+
+  test('בלי מילת עוגן → null (לא מנחש תאריך אקראי)', () => {
+    const r = classifyText('הופק בתאריך 03/02/2025 עבור לקוח', ENTITIES, { currentYear: 2026 });
+    assert.equal(r.renewalDate, null);
+  });
+});

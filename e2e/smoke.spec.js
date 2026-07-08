@@ -143,12 +143,14 @@ test('זיהוי אוטומטי: העלאת PDF מריצה ניתוח לבד (ב
   await firstCard.locator('input[type="file"]').setInputFiles({
     name: 'report.pdf',
     mimeType: 'application/pdf',
-    buffer: makePdf('Interactive Brokers Annual Activity Statement 2025'),
+    buffer: makePdf('Interactive Brokers Annual Activity Statement 2025 valid until 31/12/2027'),
   });
   const box = firstCard.locator('.analysis-box');
   await expect(box).toBeVisible(); // הופיע לבד
   await expect(box.getByText(/Annual Activity Statement/)).toBeVisible();
   await expect(box.getByText('2025', { exact: true })).toBeVisible();
+  // מועד החידוש זוהה אוטומטית מ-"valid until 31/12/2027"
+  await expect(box.locator('.analysis-date-input')).toHaveValue('2027-12-31');
   await expect(firstCard.getByRole('link', { name: /צפייה בקובץ/ })).toBeVisible();
 });
 

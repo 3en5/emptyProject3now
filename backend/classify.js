@@ -42,6 +42,37 @@ function findMatch(text, dictionary) {
   return null;
 }
 
+// מילות-עוגן למועד חידוש/תוקף (פוליסות, טסט, רישיונות)
+const RENEWAL_KEYWORDS = [
+  'בתוקף עד', 'תוקף עד', 'בתוקף ל', 'מועד חידוש', 'תאריך חידוש',
+  'תוקף הרישיון', 'תפוגה', 'עד תאריך', 'תאריך סיום', 'valid until', 'expiry', 'תוקף',
+];
+const DATE_RE = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})|(\d{4})-(\d{2})-(\d{2})/;
+const pad = (n) => String(n).padStart(2, '0');
+
+// מנרמל תאריך שנתפס ל-YYYY-MM-DD (מניח פורמט ישראלי DD/MM/YYYY)
+function normalizeDate(m) {
+  if (m[1]) return `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+  return `${m[4]}-${m[5]}-${m[6]}`;
+}
+
+// חילוץ מועד חידוש — תאריך שמופיע סמוך למילת-עוגן של תוקף.
+function extractRenewalDate(text) {
+  for (const kw of RENEWAL_KEYWORDS) {
+    let idx = text.indexOf(kw);
+    while (idx !== -1) {
+      const window = text.slice(idx, idx + 45);
+      const m = window.match(DATE_RE);
+      if (m) {
+        const iso = normalizeDate(m);
+        if (!isNaN(new Date(iso).getTime())) return iso;
+      }
+      idx = text.indexOf(kw, idx + 1);
+    }
+  }
+  return null;
+}
+
 // חילוץ שנה — השנה השכיחה ביותר בטווח סביר (2015..currentYear+1); שובר תיקו לטובת הגבוהה.
 function extractYear(text, currentYear) {
   const matches = text.match(/20\d\d/g) || [];
@@ -61,6 +92,7 @@ function extractYear(text, currentYear) {
  *   issuer: { name, entityId } | null,
  *   docType: string | null,
  *   year: number | null,
+ *   renewalDate: 'YYYY-MM-DD' | null,   // מועד חידוש/תוקף שזוהה
  *   confidence: 'high' | 'medium' | 'low',
  *   matchedTerms: string[],
  * }
@@ -73,6 +105,7 @@ export function classifyText(text, entities = [], opts = {}) {
   const issuerMatch = findMatch(norm, ISSUERS);
   const docTypeMatch = findMatch(norm, DOC_TYPES);
   const year = extractYear(norm, currentYear);
+  const renewalDate = extractRenewalDate(norm);
 
   let issuer = null;
   if (issuerMatch) {
@@ -92,5 +125,5 @@ export function classifyText(text, entities = [], opts = {}) {
   if (issuer && docType) confidence = 'high';
   else if (issuer || docType) confidence = 'medium';
 
-  return { issuer, docType, year, confidence, matchedTerms };
+  return { issuer, docType, year, renewalDate, confidence, matchedTerms };
 }

@@ -11,7 +11,7 @@ const documents = [
 ];
 
 const SUGGESTION = {
-  suggestions: { issuer: { name: 'IBKR', entityId: 2 }, docType: 'Annual Activity Statement', year: 2025, confidence: 'high', matchedTerms: [] },
+  suggestions: { issuer: { name: 'IBKR', entityId: 2 }, docType: 'Annual Activity Statement', year: 2025, renewalDate: '2027-03-31', confidence: 'high', matchedTerms: [] },
   extractedChars: 42,
   note: null,
 };
@@ -49,17 +49,29 @@ describe('DocumentPage — ניתוח חכם', () => {
     expect(await screen.findByText(/Annual Activity Statement/)).toBeInTheDocument();
   });
 
-  test('"החל הצעה" קורא ל-onUpdate עם השדות שזוהו', async () => {
+  test('מועד החידוש שזוהה מוצג בשדה נערך', async () => {
+    render(<DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} onUpload={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /נתח/ }));
+    await screen.findByText(/מועד חידוש/);
+    const dateInput = document.querySelector('.analysis-date-input');
+    expect(dateInput.value).toBe('2027-03-31'); // מולא אוטומטית מהזיהוי
+    expect(screen.getByText(/זוהה אוטומטית/)).toBeInTheDocument();
+  });
+
+  test('"החל ושמור" שומר את השדות כולל מועד החידוש (המתוקן)', async () => {
     const onUpdate = vi.fn();
     render(<DocumentPage documents={documents} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} onUpload={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /נתח/ }));
-    await screen.findByText(/החל הצעה/);
-    fireEvent.click(screen.getByRole('button', { name: /החל הצעה/ }));
+    await screen.findByText(/החל ושמור/);
+    // תיקון המועד לפני שמירה
+    fireEvent.change(document.querySelector('.analysis-date-input'), { target: { value: '2028-01-15' } });
+    fireEvent.click(screen.getByRole('button', { name: /החל ושמור/ }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
     const [id, payload] = onUpdate.mock.calls[0];
     expect(id).toBe(5);
     expect(payload.document_name).toBe('Annual Activity Statement');
     expect(payload.year).toBe(2025);
     expect(payload.entity_id).toBe(2);
+    expect(payload.required_by_date).toBe('2028-01-15'); // התיקון נשמר
   });
 });
