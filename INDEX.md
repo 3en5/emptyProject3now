@@ -34,7 +34,7 @@
 |------|-------|
 | `backend/db/schema.sql` | הגדרת כל הטבלאות והאינדקסים. **כאן משנים מבנה נתונים** (עמודות, טבלאות) |
 | `backend/db/init.js` | אתחול ה-DB: טעינת/יצירת הקובץ, הרצת הסכימה, שמירה לדיסק (`saveDatabase`) |
-| `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן** |
+| `backend/db/helper.js` | פונקציות גישה ל-DB: `runQuery`, `getOne`, `getAll` + `sanitize` (undefined→null). **כל שאילתה עוברת דרך כאן**. ⚠️ `lastID` נקרא לפני `saveDatabase` — `db.export()` מאפס את `last_insert_rowid` (LESSONS #9) |
 | `backend/db/inventory.js` | **מצאי אמיתי משותף** (גופים/מסמכים/משימות) + `insertInventory()`. משמש את seed ו-starter (DRY) |
 | `backend/db/seed.js` | זריעת **דמו** מלאה (מצאי + היסטוריית 2025 + יתרות + BTB שהסתיים). `npm run seed`. ⚠️ מוחק נתונים |
 | `backend/db/starter.js` | **התחלה נקייה** לשימוש אמיתי (מצאי + סלוטים, בלי דמו). `npm run starter`. ⚠️ מוחק נתונים |
@@ -47,7 +47,7 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **השלמה אוטומטית של משימה שנתית תואמת**) + העלאה/הורדה (`/:id/upload`, `/:id/file` — קובץ שמצטרף בפועל מסמן `status='submitted'` אוטומטית) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **מחזור משימות שנתי** — `applyChecklistCycle`: השלמה אוטומטית של משימה תואמת + גלגול השלמה משנה קודמת + יצירת משימת המשך לשנה הבאה) + העלאה/הורדה (`/:id/upload`, `/:id/file` — קובץ שמצטרף בפועל מסמן `status='submitted'` אוטומטית, גם מפעיל את מחזור המשימות) | `/api/documents` |
 | `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
@@ -55,8 +55,9 @@
 | `backend/gpt.js` | שכבת GPT (ראייה): `understandWithGPT` שולח PDF/תמונה ל-`gpt-4o` ומחזיר שדות מובנים (structured outputs) כולל תקציר/סכומים/תאריך מסמך/**personName** (שם האדם שהמסמך נוגע אליו). פעיל רק עם `OPENAI_API_KEY` |
 | `backend/understand.js` | **מנוע הבנה היברידי**: `understandDocument` — כללים מקומיים תמיד ראשון; **GPT רץ תמיד כשמוגדר מפתח** (לא רק בביטחון נמוך). מחזיר מבנה `classifyText` + `method`/`summary`/`amounts`/`docDate`/`personName`/**`ownerGuess`**. `matchEntity` מתאם שם-issuer חופשי מ-GPT לגוף קיים דרך טביעות-האצבע של `classify.js` (לא substring גולמי — ראה LESSONS #7) |
 | `backend/ownerMatch.js` | התאמת שם אדם שזוהה על מסמך ("דנה כהן") לבן-בית מוגדר (טהורה): `matchOwner(personName, {userName, spouseName})` → `'user'`/`'spouse'`/`null`. השמות דרך `.env` (`FINANCE_USER_NAME`/`FINANCE_SPOUSE_NAME`); בלי הגדרה/התאמה → `null` (המשתמש בוחר ידנית) |
-| `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס. `SELECT_WITH_JOINS` מצרף שם המסמך שהשלים אוטומטית | `/api/checklists` |
+| `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס. `SELECT_WITH_JOINS` מצרף שם המסמך שהשלים אוטומטית. `PUT` תומך גם ב-`auto_created` (COALESCE, כמו `auto_completed`) | `/api/checklists` |
 | `backend/checklistMatch.js` | התאמת מסמך שהתקבל למשימה שנתית תואמת (טהורה): `matchChecklistTask` — לסימון "V" אוטומטי |
+| `backend/checklistRollover.js` | **מחזור משימות שנתי** (טהורה): `shiftYear` (מזיז תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק מושלם לשנה הנוכחית מתוך משימת שנה קודמת), `buildNextYearTask` (משימת pending למחזור השנה הבאה — ממשיכה סדרה קיימת או נגזרת מפרטי המסמך) |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
@@ -99,7 +100,7 @@
 |------|-------|
 | `frontend/src/components/Navigation.jsx` | סרגל הניווט העליון — מעבר בין העמודים |
 | `frontend/src/components/Dashboard.jsx` | עמוד הבית: תיבת הקליטה, מדור "תויקו אוטומטית — לאישור", סטטיסטיקות, גופים לפי סוג, ממתינים, ועדכון תוכנה |
-| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity`; שדה **"עבור מי"** (`OWNER_OPTIONS`) ממולא מ-`ownerGuess`, עם רמז לשם שזוהה (`personName`) |
+| `frontend/src/components/IntakeBox.jsx` | **תיבת הקליטה החכמה** — נקודת הכניסה האחת למסמכים: זריקת קבצים (מרובים) → `/api/documents/intake` → שורות "מה הבנתי ולאן תייקתי" עם שדות תיקון + "אשר ושמור"; **יצירת גוף חדש בשורה** (שם+סוג ממולאים מהזיהוי, ניתן לעריכה) דרך `onAddEntity`; שדה **"עבור מי"** (`OWNER_OPTIONS`) ממולא מ-`ownerGuess`, עם רמז לשם שזוהה (`personName`); הודעות **מחזור המשימות** (`rolledTask`/`nextYearTask`) לצד הודעת `matchedTask` |
 | `frontend/src/constants/entityTypes.js` | `ENTITY_TYPES` — מקור אמת יחיד לסוגי גופים, כולל `donation` 🎗️ (משמש `EntityForm` ו-`IntakeBox`). ⚠️ עדיין יש מפות תווית/אייקון כפולות ב-`EntityList.jsx`, `Dashboard.jsx`, `ReportsPage.jsx`, `EntitiesPage.jsx` — סוג גוף חדש דורש עדכון בכולן |
 | `frontend/src/constants/owner.js` | `OWNER_OPTIONS`/`OWNER_LABEL` — מקור אמת יחיד ל"עבור מי" המסמך (`user`/`spouse`/ריק), משמש `IntakeBox.jsx` ו-`DocumentPage.jsx` |
 | `frontend/src/components/DocumentForm.jsx` | טופס הוספה/עריכה ידנית של מסמך (הדרך המשנית — ליצירת סלוט מתוכנן) |
@@ -113,7 +114,7 @@
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), **תצוגת רשימה מתקפלת** (`.documents-list`; כרטיס מקופל כברירת מחדל — שם/סטטוס/גוף/**תג בעלים (👤 אני/בן-זוג)**/🤖 בכותרת; לחיצה פותחת פרטים+פעולות) — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס, בורר "עבור מי" (ניתן לשינוי ישיר מהכרטיס, וגם מתוך תיבת הניתוח עם רמז לשם שזוהה) |
-| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: **בורר שנה** (ברירת מחדל: השנה הנוכחית — משתמש ב-`checklist` prop; שנה אחרת — שולף בעצמו מ-`/api/checklists/year/:year`), טופס (יצירה+עריכה, המשימה נוצרת עבור השנה הנבחרת), הפרדה בין ממתינות להושלמו |
+| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: **בורר שנה** (ברירת מחדל: השנה הנוכחית — משתמש ב-`checklist` prop; שנה אחרת — שולף בעצמו מ-`/api/checklists/year/:year`), טופס (יצירה+עריכה, המשימה נוצרת עבור השנה הנבחרת), הפרדה בין ממתינות להושלמו; תג פיקוח "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`auto_created`) במשימות ממתינות |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
 | `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + בורר שנה. שולף `/api/comparison/:year` |
@@ -130,8 +131,9 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**/**status='submitted' אוטומטי כשמצטרף קובץ, כולל regression ל-PUT בלי status**) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**/**status='submitted' אוטומטי כשמצטרף קובץ, כולל regression ל-PUT בלי status**/**מחזור משימות שנתי (rollover) — גלגול מהשנה שעברה + משימת המשך לשנה הבאה + אי-כפילות + `auto_created` ב-PUT**) |
 | `backend/test/checklistMatch.test.js` | טסטי יחידה ל-`matchChecklistTask` (טהורה) |
+| `backend/test/checklistRollover.test.js` | טסטי יחידה ל-`checklistRollover.js` (טהורה): `shiftYear`, `buildRolledTask`, `buildNextYearTask` |
 | `backend/test/ownerMatch.test.js` | טסטי יחידה ל-`matchOwner` (טהורה) — התאמת שם לבן-בית, חלקי שם, בלי הגדרה/התאמה → `null` |
 | `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate/personName+ownerGuess** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
@@ -139,12 +141,12 @@
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
-| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית**, **שדה "עבור מי" + רמז שם שזוהה** |
-| `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך, **בורר שנה** (ברירת מחדל בלי קריאת API, שליפת שנה אחרת, הוספת משימה לשנה הנבחרת) |
+| `frontend/src/test/intake.test.jsx` | טסטי תיבת הקליטה: הצגת החלטת התיוק, אישור עם תיקונים, שיוך ידני, ריבוי קבצים, תקציר/סכומים/תאריך מסמך, **הודעת השלמת משימה שנתית**, **שדה "עבור מי" + רמז שם שזוהה**, **הודעות מחזור (גלגול משנה שעברה / משימה לשנה הבאה)** |
+| `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך, **בורר שנה** (ברירת מחדל בלי קריאת API, שליפת שנה אחרת, הוספת משימה לשנה הנבחרת), **תג "נוצרה אוטומטית" + אישור (`auto_created`)** |
 | `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים**, **תג/בורר "עבור מי"** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
-| `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה ופיקוח |
+| `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה, פיקוח ומחזור משימות שנתי (גלגול + שנה הבאה דרך בורר השנה) |
 
 **הרצה:** `npm run test:all` (הכל) · `npm run test:api` · `npm run test:components` · `npm run test:e2e`
 
@@ -204,6 +206,17 @@
 - DB: `annual_checklist.auto_completed` + `completed_by_document_id` (מי סימן ולמה) — `routes/checklists.js` מצרף `completed_by_document_name` ב-JOIN
 - פיקוח: תג "🤖 הושלם אוטומטית עקב מסמך: X" + "✓ אשר" (`ChecklistPage.jsx`, מדור "הושלמו") — מנקה את הדגל בלי לשנות סטטוס; "↩️ החזר לממתין" מנקה גם את `completed_by_document_id`
 - הודעה בתיבת הקליטה: `IntakeBox.jsx` מציג "✔️ גם סומנה כהושלמה משימה שנתית: X" כשיש `matchedTask`
+
+### מחזור משימות שנתי (rollover) — "משימה לא נעלמת אחרי שהושלמה"
+**העיקרון: משימה שנתית היא סדרה חוזרת (כל שנה מחדש), לא אירוע חד-פעמי — קליטת מסמך שומרת על הרצף קדימה ואחורה.**
+- לוגיקה טהורה: `backend/checklistRollover.js` — `shiftYear` (הזזת תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק "הושלם" לשנה הנוכחית מתוך משימת שנה קודמת), `buildNextYearTask` (משימת `pending` למחזור השנה הבאה — ממשיכה סדרה או נגזרת מפרטי המסמך כשאין היסטוריה)
+- הפעלה: `routes/documents.js` (`applyChecklistCycle`) — עוטף את `tryAutoCompleteChecklist` ומוסיף שני שלבים, בכל נקודה שקובץ מצטרף בפועל (`/intake` וגם `/:id/upload`, לא בנתיב הכפילות):
+  1. **גלגול לאחור:** אם אין התאמה בשנה הנוכחית — מחפשים התאמה (`matchChecklistTask`) במשימות של שנה שעברה (כל סטטוס); אם נמצאה, יוצרים עותק "הושלם" תחת השנה הנוכחית (`rolledTask`)
+  2. **המשך קדימה:** בודקים אם כבר יש משימה תואמת בשנה הבאה — אם לא, יוצרים משימת `pending` חדשה (`nextYearTask`), ממשיכה את הסדרה (matchedTask/rolledTask) או נגזרת משם/סוג/גוף/בעלים של המסמך
+- DB: `annual_checklist.auto_created` (מיגרציה ב-`init.js`) — מסמנת משימה שנוצרה ע"י המחזור האוטומטי, לא ע"י המשתמש. `routes/checklists.js` (`PUT /:id`) תומך בה כמו `auto_completed` (COALESCE — לא נדרסת בעדכון חלקי, `0` מנקה מפורשות)
+- תגובת `/intake` ו-`/:id/upload` כוללות `matchedTask`/`rolledTask`/`nextYearTask` (כל אחד task מלא או `null`)
+- Frontend: `IntakeBox.jsx` מציג "✔️ סומנה כהושלמה משימה שנתית (גולגלה משנה שעברה): X" ו-"📅 נוצרה משימה לשנה הבאה (שנה): X"; `ChecklistPage.jsx` מציג במשימות ממתינות תג "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`confirmAutoCreated` → `auto_created: 0`) — אותו דפוס זיהוי+אישור כמו `auto_filed`/`auto_completed`
+- ⚠️ תלוי בתיקון `lastID` ב-`db/helper.js` (נקרא לפני `saveDatabase`, אחרת 0 על DB-קובץ) — ראה LESSONS #9
 
 ### עבור מי המסמך (owner — אני / בן-זוג)
 **העיקרון: זיהוי + אישור אנושי, כמו כל שאר הזיהויים במערכת — לא ניחוש שקט.**

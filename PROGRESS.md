@@ -5,7 +5,7 @@
 
 > **חשוב:** לעדכן קובץ זה בסוף כל יחידת עבודה. להעביר פריטים בין הסעיפים לפי המצב האמיתי.
 
-**עדכון אחרון:** 2026-07-08
+**עדכון אחרון:** 2026-07-09
 
 ---
 
@@ -13,6 +13,7 @@
 
 | # | מה נעשה | קבצים עיקריים | תאריך |
 |---|---------|----------------|-------|
+| 59 | **מחזור משימות שנתי (rollover) עקב מסמך שהתקבל** — מסמך שמתקבל לא רק ממלא V את המשימה הפתוחה של השנה: (1) אם אין התאמה השנה — מגלגלים השלמה ממשימה תואמת של שנה שעברה (כל סטטוס) לעותק "הושלם" תחת השנה הנוכחית; (2) בכל מקרה יוצרים משימת `pending` להמשך הסדרה במחזור השנה הבאה (אלא אם כבר קיימת התאמה שם — לא כופלים). לוגיקה טהורה חדשה `backend/checklistRollover.js` (`shiftYear`/`buildRolledTask`/`buildNextYearTask`), עטיפה `applyChecklistCycle` ב-`routes/documents.js` (מחליפה את הקריאה הישירה ל-`tryAutoCompleteChecklist` ב-`/intake` וב-`/:id/upload`, לא בנתיב הכפילות). עמודה חדשה `annual_checklist.auto_created` (מיגרציה), נתמכת ב-`PUT /api/checklists/:id` כמו `auto_completed` (COALESCE). Frontend: `IntakeBox.jsx` מציג "גולגלה משנה שעברה" + "נוצרה משימה לשנה הבאה"; `ChecklistPage.jsx` — תג "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" במשימות ממתינות (אותו דפוס פיקוח). כולל תיקון קריטי נלווה: `runQuery.lastID` חזר 0 על DB-קובץ (נקרא אחרי `saveDatabase`; `:memory:` בטסטים הסתיר את זה) — לקח #9. בוצע בשני סוכני Sonnet מקביליים (backend/frontend) + אימות E2E מרכזי. 229 טסטים (126 API + 82 רכיבים + 21 E2E) | `backend/checklistRollover.js`, `backend/routes/documents.js`, `backend/routes/checklists.js`, `backend/db/schema.sql`, `backend/db/init.js`, `backend/db/helper.js`, `IntakeBox.jsx`, `ChecklistPage.jsx`, `checklistRollover.test.js`, `intake.test.js`, `intake.test.jsx`, `checklist.test.jsx`, `smoke.spec.js`, `LESSONS.md` | 2026-07-09 |
 | 1 | **תשתית הפרויקט** — מבנה תיקיות, package.json, .gitignore | `package.json`, `.gitignore` | 2026-07-08 |
 | 2 | **סכימת DB** — 5 טבלאות (users, financial_entities, accounts, documents, annual_checklist) + אינדקסים | `backend/db/schema.sql` | 2026-07-08 |
 | 3 | **שכבת DB** — אתחול sql.js, שמירה לדיסק, פונקציות helper | `backend/db/init.js`, `backend/db/helper.js` | 2026-07-08 |

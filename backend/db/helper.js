@@ -18,9 +18,10 @@ export function runQuery(sql, params = []) {
   const db = getDatabase();
   try {
     db.run(sql, sanitize(params));
-    saveDatabase();
 
-    // Get last inserted ID
+    // קריאת ה-ID האחרון *לפני* saveDatabase — db.export() (שרץ בשמירה ל-DB קובץ)
+    // מאפס את last_insert_rowid ל-0. ב-:memory: אין export, ולכן טסטים עם DB
+    // בזיכרון לא יתפסו סדר הפוך — ראה LESSONS #9.
     let lastID = null;
     try {
       const result = db.exec('SELECT last_insert_rowid() as id');
@@ -31,6 +32,7 @@ export function runQuery(sql, params = []) {
       // Ignore error
     }
 
+    saveDatabase();
     return { success: true, lastID };
   } catch (error) {
     console.error('Query error:', error.message);

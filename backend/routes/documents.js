@@ -8,6 +8,7 @@ import { understandDocument } from '../understand.js';
 import { gptAvailable } from '../gpt.js';
 import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
 import { matchChecklistTask } from '../checklistMatch.js';
+import { buildRolledTask, buildNextYearTask } from '../checklistRollover.js';
 import { logActivity } from '../activity.js';
 
 const router = express.Router();
@@ -38,6 +39,60 @@ function tryAutoCompleteChecklist(doc) {
   );
   logActivity('update', 'task', match.id, `סומנה כהושלמה אוטומטית עקב מסמך "${doc.document_name}"`);
   return getOne('SELECT * FROM annual_checklist WHERE id = ?', [match.id]);
+}
+
+// מחזור המשימות השנתי המלא: מריצים את ההשלמה האוטומטית של השנה הנוכחית, ואז —
+//   1) אם לא נמצאה התאמה השנה — מנסים "לגלגל" השלמה ממשימה תואמת של השנה שעברה
+//      (מסמך שהתקבל באיחור, אחרי שהמשימה של השנה שעברה כבר נשארה פתוחה/סגורה).
+//   2) בכל מקרה — דואגים שתהיה משימה (pending) גם למחזור השנה הבאה, כדי שהמשימה
+//      השנתית "לא תיעלם" אחרי שהושלמה. אם כבר קיימת משימה תואמת בשנה הבאה — לא כופלים.
+// מחזירה { matchedTask, rolledTask, nextYearTask } — כל אחד task מלא או null.
+function applyChecklistCycle(doc) {
+  const year = new Date().getFullYear();
+  const matchedTask = tryAutoCompleteChecklist(doc);
+
+  let rolledTask = null;
+  if (!matchedTask) {
+    const prevYearTasks = getAll('SELECT * FROM annual_checklist WHERE year = ?', [year - 1]);
+    const prevMatch = matchChecklistTask(doc, prevYearTasks);
+    if (prevMatch) {
+      const today = new Date().toISOString().slice(0, 10);
+      const rolled = buildRolledTask(doc, prevMatch, year, today);
+      const result = runQuery(
+        `INSERT INTO annual_checklist
+         (year, entity_id, task_name, task_category, required_date, completed_date, status, assignee, auto_completed, auto_created, completed_by_document_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [rolled.year, rolled.entity_id, rolled.task_name, rolled.task_category, rolled.required_date,
+         rolled.completed_date, rolled.status, rolled.assignee, rolled.auto_completed, rolled.auto_created, rolled.completed_by_document_id]
+      );
+      rolledTask = getOne('SELECT * FROM annual_checklist WHERE id = ?', [result.lastID]);
+      if (rolledTask) {
+        logActivity('create', 'task', rolledTask.id, `גולגלה משימה משנה שעברה וסומנה כהושלמה "${rolledTask.task_name}" עקב מסמך "${doc.document_name}"`);
+      }
+    }
+  }
+
+  const seriesTask = matchedTask || rolledTask || null;
+  const nextYear = year + 1;
+  const nextYearTasks = getAll('SELECT * FROM annual_checklist WHERE year = ?', [nextYear]);
+  const nextMatch = matchChecklistTask(doc, nextYearTasks);
+
+  let nextYearTask = null;
+  if (!nextMatch) {
+    const next = buildNextYearTask(doc, seriesTask, nextYear);
+    const result = runQuery(
+      `INSERT INTO annual_checklist
+       (year, entity_id, task_name, task_category, required_date, status, assignee, auto_completed, auto_created)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [next.year, next.entity_id, next.task_name, next.task_category, next.required_date, next.status, next.assignee, next.auto_completed, next.auto_created]
+    );
+    nextYearTask = getOne('SELECT * FROM annual_checklist WHERE id = ?', [result.lastID]);
+    if (nextYearTask) {
+      logActivity('create', 'task', nextYearTask.id, `נוצרה משימה לשנה הבאה "${nextYearTask.task_name}" עקב מסמך "${doc.document_name}"`);
+    }
+  }
+
+  return { matchedTask, rolledTask, nextYearTask };
 }
 
 // עמודת amounts נשמרת כ-JSON string ב-DB; הופכים אותה למערך לפני שליחה ל-frontend.
@@ -246,13 +301,15 @@ router.post('/intake', (req, res) => {
         WHERE d.id = ?`, [docId]);
 
       // מסמך שהתקבל עשוי למלא משימה שנתית — לא תלוי בביטחון הזיהוי (המסמך פיזית התקבל)
-      const matchedTask = tryAutoCompleteChecklist(document);
+      const { matchedTask, rolledTask, nextYearTask } = applyChecklistCycle(document);
 
       res.status(201).json({
         document: withParsedAmounts(document),
         action: decision.action,
         suggestions,
         matchedTask,
+        rolledTask,
+        nextYearTask,
         note: suggestions.confidence === 'low'
           ? (gptAvailable()
               ? 'הזיהוי לא ודאי — כדאי לבדוק ולתקן ידנית'
@@ -303,10 +360,12 @@ router.post('/:id/upload', (req, res) => {
       WHERE d.id = ?`, [id]);
     logActivity('update', 'document', id, `הועלה קובץ למסמך "${updated?.document_name || ''}"`);
 
-    // כמו בקליטה — מסמך שהתקבל עשוי למלא משימה שנתית תואמת
-    const matchedTask = updated ? tryAutoCompleteChecklist(updated) : null;
+    // כמו בקליטה — מסמך שהתקבל עשוי למלא משימה שנתית תואמת (+ מחזור שנה הבאה)
+    const { matchedTask, rolledTask, nextYearTask } = updated
+      ? applyChecklistCycle(updated)
+      : { matchedTask: null, rolledTask: null, nextYearTask: null };
 
-    res.json({ ...withParsedAmounts(updated), matchedTask });
+    res.json({ ...withParsedAmounts(updated), matchedTask, rolledTask, nextYearTask });
   });
 });
 

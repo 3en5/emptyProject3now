@@ -300,3 +300,38 @@ test('משימות שנתיות: בחירת שנה אחרת מציגה את המ
   await page.locator('.filter-select').selectOption(String(year));
   await expect(page.getByText('משימת שנה קודמת — טסט')).not.toBeVisible();
 });
+
+test('מחזור משימות שנתי: קליטת מסמך מגלגלת משימה משנה שעברה ויוצרת משימה לשנה הבאה', async ({ page }) => {
+  await page.goto('/');
+  const year = await page.evaluate(() => new Date().getFullYear());
+
+  // משימה תואמת קיימת רק בשנה שעברה (אין מקבילה השנה) — הבסיס לגלגול
+  await page.evaluate(async (y) => {
+    await fetch('/api/checklists', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: y, task_name: 'איסוף טופס 867 — טסט מחזור', task_category: 'דוח בנק', status: 'completed' }),
+    });
+  }, year - 1);
+
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'mizrahi-867.pdf',
+    mimeType: 'application/pdf',
+    buffer: makePdf('bank mizrahi form 867 rollover cycle e2e'),
+  });
+  const result = page.locator('.intake-result').first();
+  await expect(result).toBeVisible();
+  // שתי ההודעות: גלגול ההשלמה מהשנה שעברה + יצירת המשימה לשנה הבאה
+  await expect(result.getByText(/גולגלה משנה שעברה/)).toBeVisible();
+  await expect(result.getByText(/נוצרה משימה לשנה הבאה/)).toBeVisible();
+
+  // בעמוד המשימות: השנה הנוכחית — המשימה המגולגלת במדור "הושלמו"
+  await page.getByRole('button', { name: /✅ משימות שנתיות/ }).click();
+  await expect(page.locator('.status-section.completed .task-item', { hasText: 'איסוף טופס 867 — טסט מחזור' })).toBeVisible();
+
+  // ובשנה הבאה (דרך בורר השנה) — משימה ממתינה עם תג פיקוח "נוצרה אוטומטית"
+  await page.locator('.filter-select').selectOption(String(year + 1));
+  const nextItem = page.locator('.status-section:not(.completed) .task-item', { hasText: 'איסוף טופס 867 — טסט מחזור' });
+  await expect(nextItem).toBeVisible();
+  await expect(nextItem.getByText(/נוצרה אוטומטית/)).toBeVisible();
+});

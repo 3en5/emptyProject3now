@@ -88,6 +88,8 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
           method: data.suggestions?.method, // 'gpt' | 'rules' — מי ניתח
           aiError: data.suggestions?.aiError, // GPT הופעל אך נכשל
           matchedTask: data.matchedTask, // משימה שנתית שסומנה אוטומטית כהושלמה עקב המסמך
+          rolledTask: data.rolledTask, // משימה שנתית לשנה הנוכחית שגולגלה משנה שעברה וסומנה כהושלמה
+          nextYearTask: data.nextYearTask, // משימה חדשה לשנה הבאה שנוצרה כתזכורת
           personName: data.suggestions?.personName || '', // שם שזוהה על המסמך (רמז ל"עבור מי")
           document: data.document,
           edit: {
@@ -223,6 +225,12 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                   {r.note && <p className="intake-note">⚠️ {r.note}</p>}
                   {r.matchedTask && (
                     <p className="intake-task-matched">✔️ גם סומנה כהושלמה משימה שנתית: <strong>{r.matchedTask.task_name}</strong></p>
+                  )}
+                  {r.rolledTask && (
+                    <p className="intake-task-matched">✔️ סומנה כהושלמה משימה שנתית (גולגלה משנה שעברה): <strong>{r.rolledTask.task_name}</strong></p>
+                  )}
+                  {r.nextYearTask && (
+                    <p className="intake-task-matched">📅 נוצרה משימה לשנה הבאה ({r.nextYearTask.year}): <strong>{r.nextYearTask.task_name}</strong></p>
                   )}
                   {r.action === 'duplicate' ? (
                     <p className="intake-saved">

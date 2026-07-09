@@ -52,6 +52,7 @@ async function initDatabase() {
     ensureColumn('documents', 'owner', 'TEXT');      // עבור מי המסמך: 'user' | 'spouse'
     ensureColumn('annual_checklist', 'auto_completed', 'INTEGER DEFAULT 0'); // הושלמה אוטומטית עקב מסמך
     ensureColumn('annual_checklist', 'completed_by_document_id', 'INTEGER'); // המסמך שגרם להשלמה
+    ensureColumn('annual_checklist', 'auto_created', 'INTEGER DEFAULT 0'); // נוצרה אוטומטית ע"י מחזור המשימות השנתי
     ensureColumn('financial_entities', 'active_from', 'DATE');
     ensureColumn('financial_entities', 'active_until', 'DATE');
 

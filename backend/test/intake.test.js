@@ -14,7 +14,7 @@ const TEST_UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'finance-intake-')
 process.env.FINANCE_UPLOAD_DIR = TEST_UPLOAD_DIR;
 
 const { init, getDatabase } = await import('../db/init.js');
-const { runQuery, getOne } = await import('../db/helper.js');
+const { runQuery, getOne, getAll } = await import('../db/helper.js');
 const { createApp } = await import('../app.js');
 const { decideFiling } = await import('../intake.js');
 const request = (await import('supertest')).default;
@@ -372,5 +372,122 @@ describe('השלמה אוטומטית של משימה שנתית עקב מסמך
     const undo = await request(app).put(`/api/checklists/${task.id}`).send({ ...task, status: 'pending', completed_date: null, auto_completed: 0 });
     assert.equal(undo.body.status, 'pending');
     assert.equal(undo.body.completed_by_document_id, null);
+  });
+});
+
+describe('מחזור משימות שנתי (rollover) עקב מסמך שהתקבל', () => {
+  test('משימה קיימת רק בשנה שעברה → מגולגלת ומושלמת לשנה הנוכחית, ונוצרת גם משימה לשנה הבאה', async () => {
+    const year = new Date().getFullYear();
+    await request(app).post('/api/checklists').send({
+      year: year - 1, task_name: 'איסוף טופס 106', task_category: 'דוח שכיר', assignee: 'spouse', status: 'completed', required_date: `${year - 1}-04-30`,
+    });
+
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary'), 'form106.pdf');
+
+    assert.equal(res.status, 201);
+    assert.equal(res.body.matchedTask, null); // אין משימה פתוחה השנה — לא "הותאמה" ישירות
+
+    assert.ok(res.body.rolledTask); // אבל גולגלה מהשנה שעברה
+    assert.equal(res.body.rolledTask.task_name, 'איסוף טופס 106');
+    assert.equal(res.body.rolledTask.year, year);
+    assert.equal(res.body.rolledTask.status, 'completed');
+    assert.equal(res.body.rolledTask.auto_completed, 1);
+    assert.equal(res.body.rolledTask.auto_created, 1);
+    assert.equal(res.body.rolledTask.completed_by_document_id, res.body.document.id);
+    assert.equal(res.body.rolledTask.required_date, `${year}-04-30`); // הוזז שנה קדימה
+
+    // המשימה המגולגלת קיימת בפועל ב-DB תחת השנה הנוכחית
+    const inDb = getOne('SELECT * FROM annual_checklist WHERE id = ?', [res.body.rolledTask.id]);
+    assert.equal(inDb.year, year);
+    assert.equal(inDb.status, 'completed');
+
+    // ונוצרה גם משימה ל-pending עבור מחזור השנה הבאה, באותו שם
+    assert.ok(res.body.nextYearTask);
+    assert.equal(res.body.nextYearTask.task_name, 'איסוף טופס 106');
+    assert.equal(res.body.nextYearTask.year, year + 1);
+    assert.equal(res.body.nextYearTask.status, 'pending');
+    assert.equal(res.body.nextYearTask.auto_created, 1);
+  });
+
+  test('משימה פתוחה השנה — התנהגות ההשלמה הרגילה ללא שינוי, ונוצרת גם משימה לשנה הבאה', async () => {
+    const year = new Date().getFullYear();
+    await request(app).post('/api/checklists').send({
+      year, task_name: 'איסוף טופס 106', task_category: 'דוח שכיר', status: 'pending',
+    });
+
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary'), 'form106b.pdf');
+
+    assert.equal(res.status, 201);
+    assert.ok(res.body.matchedTask); // הותאמה ישירות, כמו קודם
+    assert.equal(res.body.matchedTask.status, 'completed');
+    assert.equal(res.body.rolledTask, null); // לא היה צריך לגלגל — כבר הותאם השנה
+
+    assert.ok(res.body.nextYearTask);
+    assert.equal(res.body.nextYearTask.task_name, 'איסוף טופס 106');
+    assert.equal(res.body.nextYearTask.year, year + 1);
+    assert.equal(res.body.nextYearTask.status, 'pending');
+  });
+
+  test('אין משימה תואמת בכלל → rolledTask null, ונוצרת משימה לשנה הבאה עם שם נגזר מהמסמך', async () => {
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary'), 'form106c.pdf');
+
+    assert.equal(res.status, 201);
+    assert.equal(res.body.matchedTask, null);
+    assert.equal(res.body.rolledTask, null);
+
+    assert.ok(res.body.nextYearTask);
+    assert.match(res.body.nextYearTask.task_name, /^איסוף/);
+    assert.equal(res.body.nextYearTask.year, new Date().getFullYear() + 1);
+    assert.equal(res.body.nextYearTask.status, 'pending');
+    assert.equal(res.body.nextYearTask.auto_created, 1);
+  });
+
+  test('קליטה שנייה של מסמך מאותו סוג (תוכן שונה) לא כופלת את משימת השנה הבאה', async () => {
+    const first = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary'), 'form106d1.pdf');
+    assert.ok(first.body.nextYearTask);
+
+    const nextYear = new Date().getFullYear() + 1;
+    const countAfterFirst = getAll('SELECT * FROM annual_checklist WHERE year = ?', [nextYear]).length;
+    assert.equal(countAfterFirst, 1);
+
+    // תוכן שונה כדי לא להיחסם כקובץ כפול
+    const second = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary another employer copy'), 'form106d2.pdf');
+    assert.notEqual(second.body.action, 'duplicate');
+    assert.equal(second.body.nextYearTask, null); // כבר קיימת משימה תואמת לשנה הבאה — לא כופלים
+
+    const countAfterSecond = getAll('SELECT * FROM annual_checklist WHERE year = ?', [nextYear]).length;
+    assert.equal(countAfterSecond, 1);
+  });
+
+  test('PUT בלי auto_created שומר את הדגל (COALESCE); auto_created=0 מנקה אותו', async () => {
+    const res = await request(app)
+      .post('/api/documents/intake')
+      .attach('file', makePdf('form 106 employer tax summary'), 'form106e.pdf');
+    const nextYearTask = res.body.nextYearTask;
+    assert.equal(nextYearTask.auto_created, 1);
+
+    // PUT רגיל בלי auto_created בגוף הבקשה — הדגל נשאר 1
+    const kept = await request(app)
+      .put(`/api/checklists/${nextYearTask.id}`)
+      .send({ ...nextYearTask, notes: 'עדכון סתם' });
+    assert.equal(kept.status, 200);
+    assert.equal(kept.body.auto_created, 1);
+
+    // ניקוי מפורש
+    const cleared = await request(app)
+      .put(`/api/checklists/${nextYearTask.id}`)
+      .send({ ...nextYearTask, auto_created: 0 });
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.auto_created, 0);
   });
 });

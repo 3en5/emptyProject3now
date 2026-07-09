@@ -53,6 +53,38 @@ describe('ChecklistPage — פיקוח על השלמה אוטומטית (עקב 
   });
 });
 
+describe('ChecklistPage — פיקוח על משימות שנוצרו אוטומטית (עקב מסמך שהתקבל)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('משימה ממתינה עם auto_created מציגה תג "נוצרה אוטומטית" וכפתור "אשר", בלי לפנות ל-API', () => {
+    const checklist = [{ id: 5, task_name: 'איסוף טופס 106', status: 'pending', auto_created: 1 }];
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText(/נוצרה אוטומטית ממסמך שהתקבל/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /✓ אשר/ })).toBeInTheDocument();
+    expect(axios.get).not.toHaveBeenCalled();
+  });
+
+  test('לחיצה על "אשר" למשימה ממתינה שולחת auto_created: 0 בלי לשנות את הסטטוס', async () => {
+    const onUpdate = vi.fn();
+    const checklist = [{ id: 5, task_name: 'איסוף טופס 106', status: 'pending', auto_created: 1 }];
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={onUpdate} onDelete={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /✓ אשר/ }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    const [id, payload] = onUpdate.mock.calls[0];
+    expect(id).toBe(5);
+    expect(payload.auto_created).toBe(0);
+    expect(payload.status).toBe('pending');
+  });
+
+  test('משימה ממתינה עם auto_created: 0 לא מציגה את התג', () => {
+    const checklist = [{ id: 6, task_name: 'הגשת דוח שנתי', status: 'pending', auto_created: 0 }];
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+    expect(screen.queryByText(/נוצרה אוטומטית ממסמך שהתקבל/)).not.toBeInTheDocument();
+  });
+});
+
 describe('ChecklistPage — בחירת שנה', () => {
   beforeEach(() => {
     vi.clearAllMocks();

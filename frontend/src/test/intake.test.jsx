@@ -223,6 +223,31 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     expect(screen.queryByText(/גם סומנה כהושלמה/)).not.toBeInTheDocument();
   });
 
+  test('משימה שגולגלה משנה שעברה ומשימה לשנה הבאה מוצגות בשורת התוצאה', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        ...INTAKE_MATCHED,
+        rolledTask: { id: 10, task_name: 'איסוף טופס 106', year: 2026, status: 'completed', auto_completed: 1, auto_created: 1 },
+        nextYearTask: { id: 11, task_name: 'איסוף טופס 106', year: 2027, status: 'pending', auto_created: 1 },
+      },
+    });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('form106.pdf');
+
+    expect(await screen.findByText(/סומנה כהושלמה משימה שנתית \(גולגלה משנה שעברה\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/נוצרה משימה לשנה הבאה \(2027\)/)).toBeInTheDocument();
+    expect(screen.getAllByText('איסוף טופס 106').length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('בלי rolledTask/nextYearTask — אין הודעות עליהן', async () => {
+    vi.mocked(axios.post).mockResolvedValue({ data: { ...INTAKE_MATCHED, rolledTask: null, nextYearTask: null } });
+    render(<IntakeBox entities={entities} onRefresh={() => {}} />);
+    dropFile('x.pdf');
+    await screen.findByText(/זוהה ותויק לסלוט קיים/);
+    expect(screen.queryByText(/גולגלה משנה שעברה/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/נוצרה משימה לשנה הבאה/)).not.toBeInTheDocument();
+  });
+
   test('עבור מי: שם שזוהה מוצג כרמז, והבחירה (ownerGuess) נשלחת ב"אשר ושמור"', async () => {
     vi.mocked(axios.post).mockResolvedValue({
       data: {

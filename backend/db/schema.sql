@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS annual_checklist (
   notes TEXT,
   assignee TEXT,
   auto_completed INTEGER DEFAULT 0,      -- הושלמה אוטומטית עקב קליטת מסמך תואם — ניתן לביטול/אישור
+  auto_created INTEGER DEFAULT 0,        -- נוצרה אוטומטית ע"י מחזור המשימות השנתי (rollover), לא ע"י המשתמש
   completed_by_document_id INTEGER,      -- המסמך שגרם להשלמה האוטומטית (לצורך תצוגה/קישור)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

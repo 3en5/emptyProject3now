@@ -63,19 +63,20 @@ router.post('/', (req, res) => {
 });
 
 // Update checklist task
-// auto_completed: כמו documents.auto_filed — נשלח מפורשות (0) רק כשהמשתמש מאשר/מבטל
-// ידנית תיוק אוטומטי; אחרת COALESCE משאיר את הדגל כפי שהוא (לא נדרס בעדכונים רגילים).
+// auto_completed / auto_created: נשלחים מפורשות (0) רק כשהמשתמש מאשר/מבטל ידנית
+// תיוק/יצירה אוטומטית; אחרת COALESCE משאיר את הדגל כפי שהוא (לא נדרס בעדכונים רגילים).
 router.put('/:id', (req, res) => {
-  const { task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed } = req.body;
+  const { task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed, auto_created } = req.body;
 
   const result = runQuery(
     `UPDATE annual_checklist
      SET task_name = ?, task_category = ?, required_date = ?, completed_date = ?, status = ?, notes = ?, assignee = ?,
          auto_completed = COALESCE(?, auto_completed),
+         auto_created = COALESCE(?, auto_created),
          completed_by_document_id = CASE WHEN ? = 'completed' THEN completed_by_document_id ELSE NULL END,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed, status, parseInt(req.params.id)]
+    [task_name, task_category, required_date, completed_date, status, notes, assignee, auto_completed, auto_created, status, parseInt(req.params.id)]
   );
 
   if (!result.success) {

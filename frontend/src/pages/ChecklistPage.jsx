@@ -62,6 +62,12 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
     refreshOtherYear();
   };
 
+  // אישור פיקוח על משימה שנוצרה אוטומטית (עקב מסמך שהתקבל) — רק מנקה את הדגל
+  const confirmAutoCreated = async (task) => {
+    await onUpdate(task.id, { ...task, auto_created: 0 });
+    refreshOtherYear();
+  };
+
   const handleDelete = async (task) => {
     if (confirm(`למחוק את המשימה "${task.task_name}"?`)) {
       await onDelete(task.id);
@@ -255,6 +261,12 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
                           }
                           return null;
                         })()}
+                        {!!task.auto_created && (
+                          <span className="auto-completed-badge">
+                            🤖 נוצרה אוטומטית ממסמך שהתקבל
+                            {!readOnly && <button className="btn btn-success" onClick={() => confirmAutoCreated(task)}>✓ אשר</button>}
+                          </span>
+                        )}
                       </div>
                       <div className="task-actions">
                         <span className="assignee">👤 {task.assignee === 'spouse' ? 'בן/בת זוג' : 'אני'}</span>
