@@ -234,7 +234,7 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     render(<IntakeBox entities={entities} onRefresh={() => {}} />);
     dropFile('form106.pdf');
 
-    expect(await screen.findByText(/סומנה כהושלמה משימה שנתית \(גולגלה משנה שעברה\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/סומנה כהושלמה משימה שנתית לשנת 2026/)).toBeInTheDocument();
     expect(await screen.findByText(/נוצרה משימה לשנה הבאה \(2027\)/)).toBeInTheDocument();
     expect(screen.getAllByText('איסוף טופס 106').length).toBeGreaterThanOrEqual(2);
   });
@@ -244,7 +244,7 @@ describe('IntakeBox — תיבת הקליטה החכמה', () => {
     render(<IntakeBox entities={entities} onRefresh={() => {}} />);
     dropFile('x.pdf');
     await screen.findByText(/זוהה ותויק לסלוט קיים/);
-    expect(screen.queryByText(/גולגלה משנה שעברה/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/סומנה כהושלמה משימה שנתית לשנת/)).not.toBeInTheDocument();
     expect(screen.queryByText(/נוצרה משימה לשנה הבאה/)).not.toBeInTheDocument();
   });
 

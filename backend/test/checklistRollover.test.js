@@ -4,7 +4,7 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { shiftYear, buildRolledTask, buildNextYearTask } from '../checklistRollover.js';
+import { shiftYear, buildRolledTask, buildNextYearTask, buildCompletedFromDoc } from '../checklistRollover.js';
 
 describe('shiftYear', () => {
   test('מזיז תאריך מלא שנה קדימה', () => {
@@ -98,5 +98,43 @@ describe('buildNextYearTask', () => {
     const doc = { id: 7, document_name: 'מסמך', entity_id: 3, owner: null };
     const next = buildNextYearTask(doc, null, 2026);
     assert.equal(next.assignee, null);
+  });
+});
+
+describe('buildCompletedFromDoc', () => {
+  test('בונה משימה מושלמת עבור שנת המסמך, עם שם הכולל את שם הגוף', () => {
+    const doc = { id: 42, document_type: 'טופס 867', entity_id: 9, entity_name: 'בנק מזרחי', owner: 'spouse' };
+    const done = buildCompletedFromDoc(doc, 2023, '2023-05-01');
+
+    assert.equal(done.year, 2023);
+    assert.equal(done.task_name, 'איסוף טופס 867 — בנק מזרחי');
+    assert.equal(done.task_category, 'אחר');
+    assert.equal(done.entity_id, 9);
+    assert.equal(done.assignee, 'spouse');
+    assert.equal(done.required_date, null);
+    assert.equal(done.completed_date, '2023-05-01');
+    assert.equal(done.status, 'completed');
+    assert.equal(done.auto_completed, 1);
+    assert.equal(done.auto_created, 1);
+    assert.equal(done.completed_by_document_id, 42);
+  });
+
+  test('בלי entity_name — בלי סיומת בשם המשימה', () => {
+    const doc = { id: 5, document_name: 'מסמך כלשהו', entity_id: 3, owner: 'user' };
+    const done = buildCompletedFromDoc(doc, 2024, '2024-01-01');
+    assert.equal(done.task_name, 'איסוף מסמך כלשהו');
+    assert.equal(done.assignee, 'user');
+  });
+
+  test('owner לא ידוע → assignee null', () => {
+    const doc = { id: 6, document_name: 'מסמך', entity_id: 3, owner: null };
+    const done = buildCompletedFromDoc(doc, 2024, '2024-01-01');
+    assert.equal(done.assignee, null);
+  });
+
+  test('נופל ל-document_name כשאין document_type', () => {
+    const doc = { id: 8, document_name: 'אישור ניכוי מס', entity_id: 1, entity_name: 'בנק לאומי', owner: null };
+    const done = buildCompletedFromDoc(doc, 2022, '2022-12-31');
+    assert.equal(done.task_name, 'איסוף אישור ניכוי מס — בנק לאומי');
   });
 });

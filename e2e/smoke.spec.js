@@ -247,11 +247,13 @@ test('קליטת "טופס 106" מסמנת אוטומטית את משימת "א�
   await page.goto('/');
   // מנקים את משימת "איסוף טופס 106" הזרועה (טסטים אחרים בקובץ עלולים כבר לסמן/למחוק אותה)
   // ויוצרים משימה ייעודית לטסט — כדי שההתאמה תהיה חד-משמעית ובלתי-תלויה בסדר הרצה.
+  // מנקים את כל משימות השנה הנוכחית (טסטים קודמים שיוצרים משימות מושלמות אוטומטית
+  // עלולים להשאיר משימת-106 מושלמת שתיתפס בהתאמה) ויוצרים משימה ייעודית יחידה —
+  // כך ההתאמה חד-משמעית ובלתי-תלויה בסדר הרצה.
   const year = await page.evaluate(() => new Date().getFullYear());
   await page.evaluate(async (y) => {
     const list = await fetch('/api/checklists/current').then((r) => r.json());
-    const seeded = list.find((t) => t.task_name === 'איסוף טופס 106');
-    if (seeded) await fetch(`/api/checklists/${seeded.id}`, { method: 'DELETE' });
+    for (const t of list) await fetch(`/api/checklists/${t.id}`, { method: 'DELETE' });
     await fetch('/api/checklists', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ year: y, task_name: 'איסוף טופס 106 — טסט', task_category: 'דוח שכיר', status: 'pending' }),
@@ -259,10 +261,11 @@ test('קליטת "טופס 106" מסמנת אוטומטית את משימת "א�
   }, year);
 
   await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  // בלי שנה בטקסט → המחזור מעוגן בשנה הנוכחית ומתאים למשימה שהטסט יצר לשנה הנוכחית
   await page.locator('.intake-box input[type="file"]').setInputFiles({
     name: 'form106.pdf',
     mimeType: 'application/pdf',
-    buffer: makePdf('form 106 tofes 106 2025 employer summary'),
+    buffer: makePdf('form 106 tofes 106 employer summary'),
   });
   const result = page.locator('.intake-result').first();
   await expect(result).toBeVisible();
@@ -321,8 +324,8 @@ test('מחזור משימות שנתי: קליטת מסמך מגלגלת משי�
   });
   const result = page.locator('.intake-result').first();
   await expect(result).toBeVisible();
-  // שתי ההודעות: גלגול ההשלמה מהשנה שעברה + יצירת המשימה לשנה הבאה
-  await expect(result.getByText(/גולגלה משנה שעברה/)).toBeVisible();
+  // שתי ההודעות: השלמה שנרשמה לשנת המסמך (המשך הסדרה משנה שעברה) + יצירת המשימה לשנה הבאה
+  await expect(result.getByText(/סומנה כהושלמה משימה שנתית לשנת/)).toBeVisible();
   await expect(result.getByText(/נוצרה משימה לשנה הבאה/)).toBeVisible();
 
   // בעמוד המשימות: השנה הנוכחית — המשימה המגולגלת במדור "הושלמו"
@@ -353,4 +356,27 @@ test('בורר השנה דינמי: מסמך משנה ישנה מוסיף את �
   await expect(page.locator('.filter-select option', { hasText: '2023' })).toHaveCount(1);
   await page.locator('.filter-select').selectOption('2015'); // ייכשל אם השנה לא בבורר
   await expect(page.locator('.page h1')).toContainText('2015');
+});
+
+test('מחזור מעוגן בשנת המסמך: מסמך מ-2022 רושם השלמה ב-2022 ומשימת המשך ל-2023', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /📄 מסמכים/ }).click();
+  // מסמך ללא גוף מוכר אבל עם שנה (2022) בטקסט — כדי שלא ייבלע לסלוט זרוע של השנה הנוכחית
+  await page.locator('.intake-box input[type="file"]').setInputFiles({
+    name: 'backdated-2022.pdf',
+    mimeType: 'application/pdf',
+    buffer: makePdf('annual summary statement backdated 2022 unique-e2e-marker'),
+  });
+  const result = page.locator('.intake-result').first();
+  await expect(result).toBeVisible();
+  // המחזור מעוגן בשנת המסמך (2022), לא בשנה הקלנדרית: השלמה ב-2022, המשך ל-2023
+  await expect(result.getByText(/סומנה כהושלמה משימה שנתית לשנת 2022/)).toBeVisible();
+  await expect(result.getByText(/נוצרה משימה לשנה הבאה \(2023\)/)).toBeVisible();
+
+  // בעמוד המשימות: בשנת המסמך (2022) יש משימה שהושלמה; בשנה הבאה (2023) משימת המשך ממתינה
+  await page.getByRole('button', { name: /✅ משימות שנתיות/ }).click();
+  await page.locator('.filter-select').selectOption('2022');
+  await expect(page.locator('.status-section.completed .task-item').first()).toBeVisible();
+  await page.locator('.filter-select').selectOption('2023');
+  await expect(page.locator('.status-section:not(.completed) .task-item').filter({ hasText: 'נוצרה אוטומטית' }).first()).toBeVisible();
 });

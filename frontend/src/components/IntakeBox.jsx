@@ -88,7 +88,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
           method: data.suggestions?.method, // 'gpt' | 'rules' — מי ניתח
           aiError: data.suggestions?.aiError, // GPT הופעל אך נכשל
           matchedTask: data.matchedTask, // משימה שנתית שסומנה אוטומטית כהושלמה עקב המסמך
-          rolledTask: data.rolledTask, // משימה שנתית לשנה הנוכחית שגולגלה משנה שעברה וסומנה כהושלמה
+          rolledTask: data.rolledTask, // משימה שנתית שנרשמה כהושלמה עבור שנת המסמך (המשך סדרה או נגזרת מהמסמך)
           nextYearTask: data.nextYearTask, // משימה חדשה לשנה הבאה שנוצרה כתזכורת
           personName: data.suggestions?.personName || '', // שם שזוהה על המסמך (רמז ל"עבור מי")
           document: data.document,
@@ -227,7 +227,7 @@ export default function IntakeBox({ entities, onRefresh, onAddEntity }) {
                     <p className="intake-task-matched">✔️ גם סומנה כהושלמה משימה שנתית: <strong>{r.matchedTask.task_name}</strong></p>
                   )}
                   {r.rolledTask && (
-                    <p className="intake-task-matched">✔️ סומנה כהושלמה משימה שנתית (גולגלה משנה שעברה): <strong>{r.rolledTask.task_name}</strong></p>
+                    <p className="intake-task-matched">✔️ סומנה כהושלמה משימה שנתית לשנת {r.rolledTask.year}: <strong>{r.rolledTask.task_name}</strong></p>
                   )}
                   {r.nextYearTask && (
                     <p className="intake-task-matched">📅 נוצרה משימה לשנה הבאה ({r.nextYearTask.year}): <strong>{r.nextYearTask.task_name}</strong></p>

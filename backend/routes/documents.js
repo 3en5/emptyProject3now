@@ -8,7 +8,7 @@ import { understandDocument } from '../understand.js';
 import { gptAvailable } from '../gpt.js';
 import { decideFiling, HOLDING_ENTITY_NAME } from '../intake.js';
 import { matchChecklistTask } from '../checklistMatch.js';
-import { buildRolledTask, buildNextYearTask } from '../checklistRollover.js';
+import { buildRolledTask, buildNextYearTask, buildCompletedFromDoc } from '../checklistRollover.js';
 import { logActivity } from '../activity.js';
 
 const router = express.Router();
@@ -18,57 +18,64 @@ function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
-// מסמך שהתקבל (קובץ צורף) עשוי למלא משימה שנתית ("איסוף טופס 106" וכו') —
-// מחפשים התאמה חזקה בין המסמך למשימות הפתוחות של השנה הנוכחית, ומסמנים אוטומטית.
-// מוחזר task מלא (לתצוגה ל-frontend) או null אם לא נמצאה התאמה.
-function tryAutoCompleteChecklist(doc) {
-  const year = new Date().getFullYear();
-  const openTasks = getAll(
-    `SELECT * FROM annual_checklist WHERE year = ? AND status IN ('pending', 'in_progress')`,
-    [year]
+// הכנסת שורת משימה שנתית מלאה (completed או pending) ל-DB, מתוך אובייקט ערכים
+// כפי שמוחזר מ-checklistRollover.js (שדות חסרים → NULL).
+function insertChecklistTask(task) {
+  const result = runQuery(
+    `INSERT INTO annual_checklist
+     (year, entity_id, task_name, task_category, required_date, completed_date, status, assignee, auto_completed, auto_created, completed_by_document_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [task.year, task.entity_id ?? null, task.task_name, task.task_category ?? null, task.required_date ?? null,
+     task.completed_date ?? null, task.status, task.assignee ?? null, task.auto_completed ?? 0, task.auto_created ?? 0,
+     task.completed_by_document_id ?? null]
   );
-  const match = matchChecklistTask(doc, openTasks);
-  if (!match) return null;
-
-  const today = new Date().toISOString().slice(0, 10);
-  runQuery(
-    `UPDATE annual_checklist
-     SET status = 'completed', completed_date = ?, auto_completed = 1, completed_by_document_id = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [today, doc.id, match.id]
-  );
-  logActivity('update', 'task', match.id, `סומנה כהושלמה אוטומטית עקב מסמך "${doc.document_name}"`);
-  return getOne('SELECT * FROM annual_checklist WHERE id = ?', [match.id]);
+  return getOne('SELECT * FROM annual_checklist WHERE id = ?', [result.lastID]);
 }
 
-// מחזור המשימות השנתי המלא: מריצים את ההשלמה האוטומטית של השנה הנוכחית, ואז —
-//   1) אם לא נמצאה התאמה השנה — מנסים "לגלגל" השלמה ממשימה תואמת של השנה שעברה
-//      (מסמך שהתקבל באיחור, אחרי שהמשימה של השנה שעברה כבר נשארה פתוחה/סגורה).
-//   2) בכל מקרה — דואגים שתהיה משימה (pending) גם למחזור השנה הבאה, כדי שהמשימה
-//      השנתית "לא תיעלם" אחרי שהושלמה. אם כבר קיימת משימה תואמת בשנה הבאה — לא כופלים.
+// מחזור המשימות השנתי המלא, מעוגן בשנת המסמך עצמו (doc.year) — לא בשנה הנוכחית —
+// כדי שמסמך ישן (למשל מ-2023) לא "יבדוק" משימות מ-2026/2025 ולא ייצור מעקב ל-2027.
+//   1) שנה Y — דואגים שתהיה משימה מושלמת: אם יש התאמה קיימת ב-Y שעדיין לא הושלמה,
+//      מסמנים אותה (matchedTask). אם היא כבר הושלמה — לא נוגעים (מונע כפילויות).
+//      אם אין התאמה כלל ב-Y — יוצרים משימה מושלמת חדשה (rolledTask): מעדיפים תבנית
+//      משנה Y-1 (שם/קטגוריה/אחראי), ואם גם זו לא קיימת — נגזרת מפרטי המסמך עצמו.
+//   2) שנה Y+1 — דואגים שתהיה משימה (pending) למחזור הבא, כדי שהמשימה השנתית
+//      "לא תיעלם" אחרי שהושלמה. אם כבר קיימת משימה תואמת ב-Y+1 — לא כופלים.
 // מחזירה { matchedTask, rolledTask, nextYearTask } — כל אחד task מלא או null.
 function applyChecklistCycle(doc) {
-  const year = new Date().getFullYear();
-  const matchedTask = tryAutoCompleteChecklist(doc);
+  const year = doc.year || new Date().getFullYear();
+  const today = new Date().toISOString().slice(0, 10);
 
+  const yearTasks = getAll('SELECT * FROM annual_checklist WHERE year = ?', [year]);
+  const existing = matchChecklistTask(doc, yearTasks);
+
+  let matchedTask = null;
   let rolledTask = null;
-  if (!matchedTask) {
+
+  if (existing && existing.status !== 'completed') {
+    runQuery(
+      `UPDATE annual_checklist
+       SET status = 'completed', completed_date = ?, auto_completed = 1, completed_by_document_id = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [today, doc.id, existing.id]
+    );
+    matchedTask = getOne('SELECT * FROM annual_checklist WHERE id = ?', [existing.id]);
+    logActivity('update', 'task', matchedTask.id, `סומנה כהושלמה אוטומטית עקב מסמך "${doc.document_name}"`);
+  } else if (existing) {
+    // כבר הושלמה — לא נוגעים (מונע כפילויות), אבל מדווחים אותה כ-matchedTask
+    matchedTask = existing;
+  } else {
+    // אין שום משימה תואמת בשנה Y — יוצרים אחת מושלמת, מתבנית Y-1 אם יש, אחרת מהמסמך
     const prevYearTasks = getAll('SELECT * FROM annual_checklist WHERE year = ?', [year - 1]);
     const prevMatch = matchChecklistTask(doc, prevYearTasks);
-    if (prevMatch) {
-      const today = new Date().toISOString().slice(0, 10);
-      const rolled = buildRolledTask(doc, prevMatch, year, today);
-      const result = runQuery(
-        `INSERT INTO annual_checklist
-         (year, entity_id, task_name, task_category, required_date, completed_date, status, assignee, auto_completed, auto_created, completed_by_document_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [rolled.year, rolled.entity_id, rolled.task_name, rolled.task_category, rolled.required_date,
-         rolled.completed_date, rolled.status, rolled.assignee, rolled.auto_completed, rolled.auto_created, rolled.completed_by_document_id]
-      );
-      rolledTask = getOne('SELECT * FROM annual_checklist WHERE id = ?', [result.lastID]);
-      if (rolledTask) {
-        logActivity('create', 'task', rolledTask.id, `גולגלה משימה משנה שעברה וסומנה כהושלמה "${rolledTask.task_name}" עקב מסמך "${doc.document_name}"`);
-      }
+    const rolled = prevMatch
+      ? buildRolledTask(doc, prevMatch, year, today)
+      : buildCompletedFromDoc(doc, year, today);
+    rolledTask = insertChecklistTask(rolled);
+    if (rolledTask) {
+      const msg = prevMatch
+        ? `גולגלה משימה משנה שעברה וסומנה כהושלמה "${rolledTask.task_name}" עקב מסמך "${doc.document_name}"`
+        : `נרשמה משימה שנתית שהושלמה לשנת ${year} "${rolledTask.task_name}" עקב מסמך "${doc.document_name}"`;
+      logActivity('create', 'task', rolledTask.id, msg);
     }
   }
 
@@ -80,13 +87,7 @@ function applyChecklistCycle(doc) {
   let nextYearTask = null;
   if (!nextMatch) {
     const next = buildNextYearTask(doc, seriesTask, nextYear);
-    const result = runQuery(
-      `INSERT INTO annual_checklist
-       (year, entity_id, task_name, task_category, required_date, status, assignee, auto_completed, auto_created)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [next.year, next.entity_id, next.task_name, next.task_category, next.required_date, next.status, next.assignee, next.auto_completed, next.auto_created]
-    );
-    nextYearTask = getOne('SELECT * FROM annual_checklist WHERE id = ?', [result.lastID]);
+    nextYearTask = insertChecklistTask(next);
     if (nextYearTask) {
       logActivity('create', 'task', nextYearTask.id, `נוצרה משימה לשנה הבאה "${nextYearTask.task_name}" עקב מסמך "${doc.document_name}"`);
     }

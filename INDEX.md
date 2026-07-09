@@ -47,7 +47,7 @@
 |------|-------|----------|
 | `backend/routes/entities.js` | CRUD לגופים פיננסיים (בנקים, ביטוחים, השקעות) | `/api/entities` |
 | `backend/routes/accounts.js` | CRUD לחשבונות פרטניים בתוך גוף | `/api/accounts` |
-| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **מחזור משימות שנתי** — `applyChecklistCycle`: השלמה אוטומטית של משימה תואמת + גלגול השלמה משנה קודמת + יצירת משימת המשך לשנה הבאה) + העלאה/הורדה (`/:id/upload`, `/:id/file` — קובץ שמצטרף בפועל מסמן `status='submitted'` אוטומטית, גם מפעיל את מחזור המשימות) | `/api/documents` |
+| `backend/routes/documents.js` | CRUD למסמכים (כולל **`owner`** — עבור מי המסמך: `user`/`spouse`) + **קליטה חכמה** (`/intake` — הבנה היברידית + תיוק אוטומטי + **זיהוי כפילויות** לפי SHA-256 + **מחזור משימות שנתי** — `applyChecklistCycle` (מעוגן בשנת המסמך `doc.year`): רישום/השלמה של משימה לשנת המסמך + גלגול/יצירת השלמה + יצירת משימת המשך לשנה הבאה) + העלאה/הורדה (`/:id/upload`, `/:id/file` — קובץ שמצטרף בפועל מסמן `status='submitted'` אוטומטית, גם מפעיל את מחזור המשימות) | `/api/documents` |
 | `backend/intake.js` | לוגיקת התיוק החכם (טהורה): `decideFiling` — ניקוד התאמה לסלוטים פנויים → matched/create/unmatched; `HOLDING_ENTITY_NAME` |
 | `backend/upload.js` | קונפיג multer: תיקיית `uploads/`, סינון סוגים (PDF/תמונה), הגבלת 10MB. `UPLOAD_DIR` דרך env |
 | `backend/extract.js` | חילוץ טקסט מ-PDF (`pdf-parse`), best-effort — מחזיר '' אם נכשל/סרוק |
@@ -57,7 +57,7 @@
 | `backend/ownerMatch.js` | התאמת שם אדם שזוהה על מסמך ("דנה כהן") לבן-בית מוגדר (טהורה): `matchOwner(personName, {userName, spouseName})` → `'user'`/`'spouse'`/`null`. השמות דרך `.env` (`FINANCE_USER_NAME`/`FINANCE_SPOUSE_NAME`); בלי הגדרה/התאמה → `null` (המשתמש בוחר ידנית) |
 | `backend/routes/checklists.js` | CRUD למשימות שנתיות + סינון לפי שנה/סטטוס. `SELECT_WITH_JOINS` מצרף שם המסמך שהשלים אוטומטית. `PUT` תומך גם ב-`auto_created` (COALESCE, כמו `auto_completed`) | `/api/checklists` |
 | `backend/checklistMatch.js` | התאמת מסמך שהתקבל למשימה שנתית תואמת (טהורה): `matchChecklistTask` — לסימון "V" אוטומטי |
-| `backend/checklistRollover.js` | **מחזור משימות שנתי** (טהורה): `shiftYear` (מזיז תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק מושלם לשנה הנוכחית מתוך משימת שנה קודמת), `buildNextYearTask` (משימת pending למחזור השנה הבאה — ממשיכה סדרה קיימת או נגזרת מפרטי המסמך) |
+| `backend/checklistRollover.js` | **מחזור משימות שנתי** (טהורה): `shiftYear` (מזיז תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק מושלם משנה קודמת), `buildCompletedFromDoc` (משימה מושלמת נגזרת מהמסמך כשאין היסטוריה כלל), `buildNextYearTask` (משימת pending למחזור הבא). **המחזור מעוגן בשנת המסמך** (`doc.year`), לא בשנה הקלנדרית |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
@@ -132,9 +132,10 @@
 | קובץ | תפקיד |
 |------|-------|
 | `backend/test/api.test.js` | טסטי אינטגרציה ל-API (`node --test` + supertest, DB בזיכרון) |
-| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**השלמת משימה שנתית אוטומטית**/**owner**/**status='submitted' אוטומטי כשמצטרף קובץ, כולל regression ל-PUT בלי status**/**מחזור משימות שנתי (rollover) — גלגול מהשנה שעברה + משימת המשך לשנה הבאה + אי-כפילות + `auto_created` ב-PUT**) |
+| `backend/test/intake.test.js` | טסטים לקליטה: `decideFiling` + `/intake` מקצה-לקצה (תיוק/יצירה/לא-מזוהה/אישור/כפילות/summary+amounts+doc_date/**owner**/**status='submitted' אוטומטי כשמצטרף קובץ, כולל regression ל-PUT בלי status**) |
+| `backend/test/checklistCycle.test.js` | מחזור המשימות מקצה-לקצה (`/intake`+`/:id/upload`): השלמה אוטומטית של משימה תואמת · **גלגול מהשנה שעברה** · **יצירת משימה מושלמת נגזרת מהמסמך כשאין היסטוריה** · **עיגון בשנת המסמך (`doc.year`)** · משימת המשך לשנה הבאה + אי-כפילות + `auto_created` ב-PUT |
 | `backend/test/checklistMatch.test.js` | טסטי יחידה ל-`matchChecklistTask` (טהורה) |
-| `backend/test/checklistRollover.test.js` | טסטי יחידה ל-`checklistRollover.js` (טהורה): `shiftYear`, `buildRolledTask`, `buildNextYearTask` |
+| `backend/test/checklistRollover.test.js` | טסטי יחידה ל-`checklistRollover.js` (טהורה): `shiftYear`, `buildRolledTask`, `buildCompletedFromDoc`, `buildNextYearTask` |
 | `backend/test/ownerMatch.test.js` | טסטי יחידה ל-`matchOwner` (טהורה) — התאמת שם לבן-בית, חלקי שם, בלי הגדרה/התאמה → `null` |
 | `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate/personName+ownerGuess** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
@@ -210,13 +211,14 @@
 
 ### מחזור משימות שנתי (rollover) — "משימה לא נעלמת אחרי שהושלמה"
 **העיקרון: משימה שנתית היא סדרה חוזרת (כל שנה מחדש), לא אירוע חד-פעמי — קליטת מסמך שומרת על הרצף קדימה ואחורה.**
-- לוגיקה טהורה: `backend/checklistRollover.js` — `shiftYear` (הזזת תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק "הושלם" לשנה הנוכחית מתוך משימת שנה קודמת), `buildNextYearTask` (משימת `pending` למחזור השנה הבאה — ממשיכה סדרה או נגזרת מפרטי המסמך כשאין היסטוריה)
-- הפעלה: `routes/documents.js` (`applyChecklistCycle`) — עוטף את `tryAutoCompleteChecklist` ומוסיף שני שלבים, בכל נקודה שקובץ מצטרף בפועל (`/intake` וגם `/:id/upload`, לא בנתיב הכפילות):
-  1. **גלגול לאחור:** אם אין התאמה בשנה הנוכחית — מחפשים התאמה (`matchChecklistTask`) במשימות של שנה שעברה (כל סטטוס); אם נמצאה, יוצרים עותק "הושלם" תחת השנה הנוכחית (`rolledTask`)
-  2. **המשך קדימה:** בודקים אם כבר יש משימה תואמת בשנה הבאה — אם לא, יוצרים משימת `pending` חדשה (`nextYearTask`), ממשיכה את הסדרה (matchedTask/rolledTask) או נגזרת משם/סוג/גוף/בעלים של המסמך
+- **המחזור מעוגן בשנת המסמך (`doc.year`)**, לא בשנה הקלנדרית — מסמך מ-2023 משלים/רושם משימה ל-2023 ופותח משימת המשך ל-2024 (fallback לשנה הנוכחית אם המסמך בלי שנה)
+- לוגיקה טהורה: `backend/checklistRollover.js` — `shiftYear` (הזזת תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק "הושלם" משנה קודמת), `buildCompletedFromDoc` (משימה "הושלם" נגזרת מהמסמך כשאין היסטוריה כלל), `buildNextYearTask` (משימת `pending` למחזור הבא)
+- הפעלה: `routes/documents.js` (`applyChecklistCycle`), בכל נקודה שקובץ מצטרף בפועל (`/intake` וגם `/:id/upload`, לא בנתיב הכפילות), שנת המסמך = Y:
+  1. **השלמה עבור שנת המסמך:** אם יש משימה תואמת ב-Y (`matchChecklistTask`) שאינה מושלמת — מסמנים אותה (`matchedTask`); אחרת יוצרים משימה מושלמת חדשה ב-Y (`rolledTask`) — עותק מסדרת Y-1 אם קיימת, אחרת נגזרת מהמסמך (`buildCompletedFromDoc`). כך מסמך מוכיח שהחובה בוצעה גם בלי היסטוריה קודמת
+  2. **המשך קדימה (Y+1):** בודקים אם כבר יש משימה תואמת ב-Y+1 — אם לא, יוצרים משימת `pending` (`nextYearTask`), ממשיכה את הסדרה או נגזרת משם/סוג/גוף/בעלים של המסמך
 - DB: `annual_checklist.auto_created` (מיגרציה ב-`init.js`) — מסמנת משימה שנוצרה ע"י המחזור האוטומטי, לא ע"י המשתמש. `routes/checklists.js` (`PUT /:id`) תומך בה כמו `auto_completed` (COALESCE — לא נדרסת בעדכון חלקי, `0` מנקה מפורשות)
 - תגובת `/intake` ו-`/:id/upload` כוללות `matchedTask`/`rolledTask`/`nextYearTask` (כל אחד task מלא או `null`)
-- Frontend: `IntakeBox.jsx` מציג "✔️ סומנה כהושלמה משימה שנתית (גולגלה משנה שעברה): X" ו-"📅 נוצרה משימה לשנה הבאה (שנה): X"; `ChecklistPage.jsx` מציג במשימות ממתינות תג "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`confirmAutoCreated` → `auto_created: 0`) — אותו דפוס זיהוי+אישור כמו `auto_filed`/`auto_completed`
+- Frontend: `IntakeBox.jsx` מציג "✔️ סומנה כהושלמה משימה שנתית לשנת {year}: X" ו-"📅 נוצרה משימה לשנה הבאה ({year}): X"; `ChecklistPage.jsx` מציג במשימות ממתינות תג "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`confirmAutoCreated` → `auto_created: 0`) — אותו דפוס זיהוי+אישור כמו `auto_filed`/`auto_completed`
 - ⚠️ תלוי בתיקון `lastID` ב-`db/helper.js` (נקרא לפני `saveDatabase`, אחרת 0 על DB-קובץ) — ראה LESSONS #9
 
 ### עבור מי המסמך (owner — אני / בן-זוג)

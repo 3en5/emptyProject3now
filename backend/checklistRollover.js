@@ -42,6 +42,14 @@ export function buildRolledTask(doc, prevTask, year, today) {
   };
 }
 
+// גזירת שם המשימה והאחראי ישירות מפרטי המסמך — כשאין שום היסטוריית משימות
+// להתבסס עליה (לא ב-Y-1 ולא seriesTask). משותף בין buildNextYearTask ל-buildCompletedFromDoc.
+function deriveFromDoc(doc) {
+  const assignee = doc.owner === 'spouse' ? 'spouse' : (doc.owner === 'user' ? 'user' : null);
+  const taskName = `איסוף ${doc.document_type || doc.document_name}${doc.entity_name ? ` — ${doc.entity_name}` : ''}`;
+  return { taskName, assignee };
+}
+
 /**
  * בונה את שורת משימת השנה הבאה — ממשיכה את הסדרה (מהמשימה שהותאמה/גולגלה), או
  * נגזרת מפרטי המסמך עצמו כשאין כלל היסטוריית משימות.
@@ -65,8 +73,7 @@ export function buildNextYearTask(doc, seriesTask, nextYear) {
     };
   }
 
-  const assignee = doc.owner === 'spouse' ? 'spouse' : (doc.owner === 'user' ? 'user' : null);
-  const taskName = `איסוף ${doc.document_type || doc.document_name}${doc.entity_name ? ` — ${doc.entity_name}` : ''}`;
+  const { taskName, assignee } = deriveFromDoc(doc);
   return {
     year: nextYear,
     entity_id: doc.entity_id ?? null,
@@ -77,5 +84,31 @@ export function buildNextYearTask(doc, seriesTask, nextYear) {
     assignee,
     auto_completed: 0,
     auto_created: 1,
+  };
+}
+
+/**
+ * בונה שורת משימה שכבר "הושלמה" עבור שנת המסמך (year) — כשאין שום משימה תואמת
+ * בשנה עצמה וגם אין תבנית משנה קודמת (Y-1) להעתיק ממנה. נגזרת ישירות מפרטי המסמך,
+ * כמו הענף חסר-ה-seriesTask של buildNextYearTask, אבל מסומנת completed מייד.
+ * @param {object} doc - המסמך שהתקבל (חייב id)
+ * @param {number} year - שנת המסמך (doc.year, או השנה הנוכחית אם אין)
+ * @param {string} today - תאריך ההשלמה, 'YYYY-MM-DD'
+ * @returns {object} ערכי עמודות ל-INSERT בטבלת annual_checklist
+ */
+export function buildCompletedFromDoc(doc, year, today) {
+  const { taskName, assignee } = deriveFromDoc(doc);
+  return {
+    year,
+    entity_id: doc.entity_id ?? null,
+    task_name: taskName,
+    task_category: 'אחר',
+    required_date: null,
+    completed_date: today,
+    status: 'completed',
+    assignee,
+    auto_completed: 1,
+    auto_created: 1,
+    completed_by_document_id: doc.id,
   };
 }
