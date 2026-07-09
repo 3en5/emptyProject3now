@@ -63,7 +63,7 @@ describe('ChecklistPage — פיקוח על משימות שנוצרו אוטומ
     render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
     expect(screen.getByText(/נוצרה אוטומטית ממסמך שהתקבל/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /✓ אשר/ })).toBeInTheDocument();
-    expect(axios.get).not.toHaveBeenCalled();
+    expect(axios.get).not.toHaveBeenCalledWith(expect.stringContaining('/api/checklists/year/'));
   });
 
   test('לחיצה על "אשר" למשימה ממתינה שולחת auto_created: 0 בלי לשנות את הסטטוס', async () => {
@@ -94,7 +94,7 @@ describe('ChecklistPage — בחירת שנה', () => {
     const checklist = [{ id: 1, task_name: 'משימת השנה', status: 'pending' }];
     render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
     expect(screen.getByText('משימת השנה')).toBeInTheDocument();
-    expect(axios.get).not.toHaveBeenCalled();
+    expect(axios.get).not.toHaveBeenCalledWith(expect.stringContaining('/api/checklists/year/'));
   });
 
   test('בחירת שנה אחרת שולפת מ-/api/checklists/year/:year ומציגה את המשימות שלה', async () => {
@@ -125,5 +125,15 @@ describe('ChecklistPage — בחירת שנה', () => {
 
     await waitFor(() => expect(onAdd).toHaveBeenCalled());
     expect(onAdd.mock.calls[0][0].year).toBe(CURRENT_YEAR - 1);
+  });
+
+  test('בורר השנה נטען מ-/api/system/years וכולל שנים ישנות מהנתונים', async () => {
+    const checklist = [{ id: 1, task_name: 'משימת השנה', status: 'pending' }];
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { years: [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, 2019] },
+    });
+    render(<ChecklistPage checklist={checklist} entities={entities} onAdd={() => {}} onUpdate={() => {}} onDelete={() => {}} />);
+
+    expect(await screen.findByRole('option', { name: '2019' })).toBeInTheDocument();
   });
 });

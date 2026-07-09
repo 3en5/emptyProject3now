@@ -63,7 +63,7 @@
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
-| `backend/routes/system.js` | עדכון תוכנה מול git + סטטוס זיהוי חכם (`ai-status` — האם `OPENAI_API_KEY` מוגדר). `spawn` shell, פקודות קבועות ללא קלט משתמש | `/api/system/version` · `/update/check` · `/update/apply` · `/ai-status` |
+| `backend/routes/system.js` | עדכון תוכנה מול git + סטטוס זיהוי חכם (`ai-status`) + **`/years`** (רשימת השנים לבוררי הממשק: חלון ברירת מחדל `current-7..current+1` מאוחד עם כל שנה הקיימת בפועל ב-`documents`/`annual_checklist`). `spawn` shell, פקודות קבועות ללא קלט משתמש | `/api/system/version` · `/update/check` · `/update/apply` · `/ai-status` · `/years` |
 | `backend/app.js` | יצירת אפליקציית Express (`createApp`) — middleware + routes + **הגשת frontend/dist** (production). מיוצא לטסטים |
 | `backend/server.js` | נקודת הכניסה: מייבא `createApp`, מריץ `init()` ומאזין לפורט |
 
@@ -114,10 +114,10 @@
 |------|-------|
 | `frontend/src/pages/EntitiesPage.jsx` | עמוד הגופים הפיננסיים: סינון לפי סוג, חיבור הטופס והרשימה |
 | `frontend/src/pages/DocumentPage.jsx` | עמוד המסמכים: תיבת הקליטה למעלה, סינון (כולל "🤖 ממתינים לאישור"), **תצוגת רשימה מתקפלת** (`.documents-list`; כרטיס מקופל כברירת מחדל — שם/סטטוס/גוף/**תג בעלים (👤 אני/בן-זוג)**/🤖 בכותרת; לחיצה פותחת פרטים+פעולות) — תג "תויק אוטומטית" + אשר/תקן, החלפת קובץ, גרירה ממוקדת לכרטיס, בורר "עבור מי" (ניתן לשינוי ישיר מהכרטיס, וגם מתוך תיבת הניתוח עם רמז לשם שזוהה) |
-| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: **בורר שנה** (ברירת מחדל: השנה הנוכחית — משתמש ב-`checklist` prop; שנה אחרת — שולף בעצמו מ-`/api/checklists/year/:year`), טופס (יצירה+עריכה, המשימה נוצרת עבור השנה הנבחרת), הפרדה בין ממתינות להושלמו; תג פיקוח "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`auto_created`) במשימות ממתינות |
+| `frontend/src/pages/ChecklistPage.jsx` | עמוד משימות שנתיות: **בורר שנה דינמי** (`useYears` — לפי הנתונים, לא רשימה קשיחה; ברירת מחדל: השנה הנוכחית מ-`checklist` prop, שנה אחרת נשלפת מ-`/api/checklists/year/:year`), טופס (יצירה+עריכה, המשימה נוצרת עבור השנה הנבחרת), הפרדה בין ממתינות להושלמו; תג פיקוח "🤖 נוצרה אוטומטית ממסמך שהתקבל" + "✓ אשר" (`auto_created`) במשימות ממתינות |
 | `frontend/src/pages/AccountsPage.jsx` | עמוד חשבונות: טופס (יצירה+עריכה), כרטיסי חשבונות עם יתרה/מטבע |
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
-| `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + בורר שנה. שולף `/api/comparison/:year` |
+| `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + **בורר שנה דינמי** (`useYears`). שולף `/api/comparison/:year` |
 | `frontend/src/pages/MonthlyPage.jsx` | עמוד דוח חודשי: בורר חודש + מסמכים/משימות שמועדם החודש + שינויים. שולף `/api/report/monthly` |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
@@ -125,6 +125,7 @@
 | קובץ | תפקיד |
 |------|-------|
 | `utils/deadlines.js` | חישוב דחיפות לפי מועד+סטטוס (`getUrgency`, `urgencyMeta`, `isAlerting`). פונקציות טהורות — משמשות את הדשבורד והעמודים לרמזור ההתראות |
+| `hooks/useYears.js` | hook שמושך `/api/system/years` (שנים לבורר) עם fallback לחלון ברירת מחדל. משמש `ChecklistPage` ו-`ComparisonPage` — כך בורר השנה דינמי לפי הנתונים ולא רשימה קשיחה |
 
 ### טסטים (פירמידה מלאה)
 
@@ -196,7 +197,7 @@
 
 ### משימות שנתיות
 - Backend: `backend/routes/checklists.js` — `GET /year/:year` לכל שנה, `GET /current` לשנה הנוכחית בלבד
-- Frontend: `pages/ChecklistPage.jsx` — **בורר שנה** (`YEARS = [הבאה, נוכחית, קודמת, לפני-קודמת]`): השנה הנוכחית מוצגת מה-`checklist` prop (מוחזק ב-`App.jsx`, גם משמש את `Dashboard`); כל שנה אחרת נשלפת עצמאית דרך `axios` ישירות מהעמוד (`otherYearList`), בלי לגעת ב-state הגלובלי. הוספה/עדכון/מחיקה בזמן צפייה בשנה אחרת עוברים דרך אותם handlers מ-`App.jsx` (ה-API לא תלוי-שנה), ואז מרעננים (`refreshOtherYear`)
+- Frontend: `pages/ChecklistPage.jsx` — **בורר שנה דינמי** (`hooks/useYears.js` שולף מ-`/api/system/years` — חלון ברירת מחדל מאוחד עם שנים הקיימות בפועל; מסמך משנה ישנה מוסיף את שנתו לבורר אוטומטית): השנה הנוכחית מוצגת מה-`checklist` prop (מוחזק ב-`App.jsx`, גם משמש את `Dashboard`); כל שנה אחרת נשלפת עצמאית דרך `axios` ישירות מהעמוד (`otherYearList`), בלי לגעת ב-state הגלובלי. הוספה/עדכון/מחיקה בזמן צפייה בשנה אחרת עוברים דרך אותם handlers מ-`App.jsx` (ה-API לא תלוי-שנה), ואז מרעננים (`refreshOtherYear`)
 - קטגוריות משימה: מוגדרות בתוך `ChecklistPage.jsx` (מערך `categories`)
 
 ### השלמה אוטומטית של משימה עקב מסמך שהתקבל

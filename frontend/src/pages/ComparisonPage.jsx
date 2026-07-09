@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useYears } from '../hooks/useYears';
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 
 export default function ComparisonPage() {
+  const years = useYears();
   const [year, setYear] = useState(CURRENT_YEAR);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +30,7 @@ export default function ComparisonPage() {
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label>שנה להשוואה (מול {year - 1})</label>
           <select className="filter-select" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
       </div>

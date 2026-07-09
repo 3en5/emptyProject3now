@@ -51,4 +51,15 @@ describe('ComparisonPage', () => {
     await screen.findByText(/מסמכים חסרים/);
     expect(vi.mocked(axios.get)).toHaveBeenCalledWith(expect.stringMatching(/\/api\/comparison\/\d+/));
   });
+
+  test('בורר השנה נטען מ-/api/system/years וכולל שנים ישנות מהנתונים', async () => {
+    vi.mocked(axios.get).mockImplementation((url) =>
+      url === '/api/system/years'
+        ? Promise.resolve({ data: { years: [2027, 2026, 2019] } })
+        : Promise.resolve({ data: DATA })
+    );
+    render(<ComparisonPage />);
+    await screen.findByText(/מסמכים חסרים/);
+    expect(await screen.findByRole('option', { name: '2019' })).toBeInTheDocument();
+  });
 });

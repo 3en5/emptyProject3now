@@ -335,3 +335,22 @@ test('מחזור משימות שנתי: קליטת מסמך מגלגלת משי�
   await expect(nextItem).toBeVisible();
   await expect(nextItem.getByText(/נוצרה אוטומטית/)).toBeVisible();
 });
+
+test('בורר השנה דינמי: מסמך משנה ישנה מוסיף את השנה לבורר אוטומטית', async ({ page }) => {
+  await page.goto('/');
+
+  // מסמך משנת 2015 — מחוץ לחלון ברירת המחדל (7 שנים אחורה) — נוצר דרך ה-API
+  await page.evaluate(async () => {
+    const entities = await fetch('/api/entities').then((r) => r.json());
+    await fetch('/api/documents', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entity_id: entities[0].id, document_name: 'מסמך ישן — טסט 2015', year: 2015 }),
+    });
+  });
+
+  await page.getByRole('button', { name: /✅ משימות שנתיות/ }).click();
+  // 2023 קיימת בחלון ברירת המחדל (הייתה חסרה קודם); 2015 נוספה כי יש מסמך משנה זו
+  await expect(page.locator('.filter-select option', { hasText: '2023' })).toHaveCount(1);
+  await page.locator('.filter-select').selectOption('2015'); // ייכשל אם השנה לא בבורר
+  await expect(page.locator('.page h1')).toContainText('2015');
+});

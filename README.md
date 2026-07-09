@@ -102,15 +102,15 @@ npm run service:stop     # עצירה
 
 ---
 
-## 🧪 בדיקות (229 טסטים, פירמידה מלאה)
+## 🧪 בדיקות (234 טסטים, פירמידה מלאה)
 
 רצים מול DB מבודד בזיכרון — **לא נוגעים בנתונים האמיתיים**:
 
 ```bash
 npm run test:all         # הכל: API + רכיבים + E2E
-npm run test:api         # 126 טסטי API (node --test + supertest)
-npm run test:components  # 82 טסטי רכיבי React (Vitest + RTL)
-npm run test:e2e         # 21 טסטי E2E בדפדפן (Playwright)
+npm run test:api         # 128 טסטי API (node --test + supertest)
+npm run test:components  # 84 טסטי רכיבי React (Vitest + RTL)
+npm run test:e2e         # 22 טסטי E2E בדפדפן (Playwright)
 ```
 
 ---
@@ -156,6 +156,7 @@ frontend/src/
 | `/api/export/action-list.csv?year=YYYY` | ייצוא CSV |
 | `/api/activity?limit=N` | יומן שינויים |
 | `/api/system/version` · `/update/check` · `/update/apply` | גרסה מותקנת · בדיקת עדכון · התקנת עדכון |
+| `/api/system/years` | רשימת השנים לבוררי השנה — חלון ברירת מחדל + כל שנה הקיימת בפועל בנתונים |
 
 ---
 

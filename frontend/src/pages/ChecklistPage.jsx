@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getUrgency, urgencyMeta } from '../utils/deadlines';
 import { useReadOnly } from '../ReadOnlyContext';
+import { useYears } from '../hooks/useYears';
 
 const EMPTY_TASK = {
   task_name: '',
@@ -12,10 +13,10 @@ const EMPTY_TASK = {
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 
 export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, onDelete }) {
   const readOnly = useReadOnly();
+  const years = useYears();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_TASK);
@@ -145,7 +146,7 @@ export default function ChecklistPage({ checklist, entities, onAdd, onUpdate, on
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label>שנה</label>
             <select className="filter-select" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
-              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <a

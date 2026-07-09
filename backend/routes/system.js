@@ -4,8 +4,32 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { gptAvailable } from '../gpt.js';
+import { getAll } from '../db/helper.js';
 
 const router = express.Router();
+
+// רשימת שנים ל-year-pickers ב-UI (ChecklistPage, ComparisonPage) — data-driven.
+// איחוד של: (1) חלון ברירת מחדל — 7 שנים אחורה (תקופת שמירת המסמכים לפי דיני המס
+// בישראל) ושנה אחת קדימה (לתכנון), עם (2) כל שנה שמופיעה בפועל במסמכים/במשימות
+// השנתיות — כדי ששנה ישנה במיוחד (למשל 2015) תופיע גם היא.
+router.get('/years', (req, res) => {
+  try {
+    const current = new Date().getFullYear();
+    const years = new Set();
+    for (let y = current - 7; y <= current + 1; y++) years.add(y);
+
+    const rows = getAll(
+      `SELECT DISTINCT year FROM documents WHERE year IS NOT NULL
+       UNION
+       SELECT DISTINCT year FROM annual_checklist WHERE year IS NOT NULL`
+    );
+    rows.forEach((r) => years.add(r.year));
+
+    res.json({ years: [...years].sort((a, b) => b - a) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // סטטוס הזיהוי החכם — האם מפתח OpenAI מוגדר. מאפשר ל-UI להראות אם GPT פעיל.
 router.get('/ai-status', (req, res) => {
