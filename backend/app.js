@@ -13,6 +13,7 @@ import exportRouter from './routes/export.js';
 import activityRouter from './routes/activity.js';
 import reportRouter from './routes/report.js';
 import systemRouter from './routes/system.js';
+import readinessRouter from './routes/readiness.js';
 
 // יוצר את אפליקציית Express (בלי להאזין לפורט ובלי אתחול DB).
 // מיוצא בנפרד כדי שטסטים יוכלו לייבא אותו ולהריץ בקשות ישירות.
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/api/activity', activityRouter);
   app.use('/api/report', reportRouter);
   app.use('/api/system', systemRouter);
+  app.use('/api/readiness', readinessRouter);
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
