@@ -60,6 +60,7 @@
 | `backend/checklistRollover.js` | **מחזור משימות שנתי** (טהורה): `shiftYear` (מזיז תאריך `YYYY-...` שנה קדימה), `buildRolledTask` (עותק מושלם משנה קודמת), `buildCompletedFromDoc` (משימה מושלמת נגזרת מהמסמך כשאין היסטוריה כלל), `buildNextYearTask` (משימת pending למחזור הבא). **המחזור מעוגן בשנת המסמך** (`doc.year`), לא בשנה הקלנדרית |
 | `backend/routes/summary.js` | דוח סיכום: אגרגציית נכסים/התחייבויות/שווי-נקי לפי מטבע + ספירות | `/api/summary` |
 | `backend/routes/comparison.js` | השוואת שנה-לשנה: missing/received/added/ended לפי `documents.year` ו-`active_from/until` | `/api/comparison/:year` |
+| `backend/routes/readiness.js` | **מוכנות לרו״ח**: מסמכי `documents` לשנה מקובצים לפי גוף (`have`/`total`), חסרים-קודם; `carry-forward` בונה סלוטים לשנה מהמסמכים של השנה הקודמת (רק גופים פעילים, לא כפול) | `/api/readiness/:year` · `/api/readiness/:year/carry-forward` |
 | `backend/routes/export.js` | ייצוא CSV של רשימת פעולות (מסמכים+משימות ממתינים), עם BOM לעברית | `/api/export/action-list.csv` |
 | `backend/routes/activity.js` | שליפת שינויים אחרונים מהיומן | `/api/activity?limit=N` |
 | `backend/routes/report.js` | דוח חודשי: שינויים + מסמכים/משימות שמועדם בחודש | `/api/report/monthly?month=YYYY-MM` |
@@ -93,6 +94,7 @@
 | `styles/cards.css` | כרטיסי גופים ומסמכים |
 | `styles/checklist.css` | משימות שנתיות: מכולה, סקשנים, משימות |
 | `styles/misc.css` | הודעות שגיאה, מצב ריק, ורספונסיביות (media query) |
+| `styles/readiness.css` | עמוד "מוכנות לרו״ח": hero + מד התקדמות, קבוצות לפי גוף, שורות מסמכים, chips (✅/🔴). טוקנים מקומיים תחת `.readiness-page` (`--rdn-*`), נגזרים מ-`:root` הקיים + תוספות (bad-bg/good-bg/warn-bg וכו') |
 
 ### Frontend — רכיבים (`frontend/src/components/`)
 
@@ -107,6 +109,7 @@
 | `frontend/src/components/UpdateChecker.jsx` | כפתור "בדיקת עדכון תוכנה": בודק מול `/api/system/update/check`, מציג שינויים זמינים ומתקין דרך `/update/apply` |
 | `frontend/src/components/EntityForm.jsx` | טופס הוספה/עריכה של גוף פיננסי (כולל רשימת הקטגוריות לכל סוג) |
 | `frontend/src/components/EntityList.jsx` | תצוגת רשימת הגופים כ-cards **מתקפלים** (ברירת מחדל: מקופל — כותרת שם+קטגוריה בלבד; לחיצה פותחת פרטים+עריכה/מחיקה) |
+| `frontend/src/components/ReadinessGroup.jsx` | כרטיס גוף אחד במסך "מוכנות לרו״ח": כותרת (אייקון סוג+שם+מונה יש/סה"כ או תג "הסתיים")+שורות מסמכים (chip יש/חסר, העלאה, מחיקה)+"➕ הוסף פריט" בסוף. פוצל מ-`ReadinessPage.jsx` לעמידה בכלל 500 השורות |
 
 ### Frontend — עמודים (`frontend/src/pages/`)
 
@@ -119,6 +122,7 @@
 | `frontend/src/pages/ReportsPage.jsx` | עמוד דוחות: שווי נקי לפי מטבע, התפלגות נכסים, ספירות. שולף `/api/summary` בעצמו |
 | `frontend/src/pages/ComparisonPage.jsx` | עמוד השוואת שנים: 4 מונים + סעיפים (חסר/חוזר/חדש/הסתיים) + **בורר שנה דינמי** (`useYears`). שולף `/api/comparison/:year` |
 | `frontend/src/pages/MonthlyPage.jsx` | עמוד דוח חודשי: בורר חודש + מסמכים/משימות שמועדם החודש + שינויים. שולף `/api/report/monthly` |
+| `frontend/src/pages/ReadinessPage.jsx` | עמוד "מוכנות לרו״ח": שולף בעצמו `/api/readiness/:year`+`/api/entities` (**בורר שנה דינמי** `useYears`, ברירת מחדל השנה הנוכחית), hero עם have/total+מד התקדמות, ייצוא CSV, מתג "הכול/רק החסרים", "🔄 בנה מרשימת אשתקד" (carry-forward), קבוצות (`ReadinessGroup`) מסודרות: חסרים→מוכנים✓→הסתיימו. סיום/החזרת התקשרות עם גוף עושה **PUT מלא** (`{...fullEntity, active_until}`) — שולף את האובייקט המלא מ-`/api/entities` כי ה-PUT דורס שדות חסרים |
 
 ### Frontend — עזרים (`frontend/src/utils/`)
 
@@ -140,6 +144,7 @@
 | `backend/test/understand.test.js` | טסטים למנוע ההיברידי: כללים→GPT תמיד-כשמוגדר-מפתח, כשל→גיבוי, **summary/amounts/docDate/personName+ownerGuess** (פונקציית ה-AI מוזרקת, בלי רשת) |
 | `backend/test/classify.test.js` | טסטי מנוע הסיווג: גופים, סוגי מסמכים, שנה, מועד חידוש |
 | `backend/test/system.test.js` | טסט route עדכון התוכנה (`/api/system/version`) |
+| `backend/test/readiness.test.js` | טסטים ל"מוכנות לרו״ח": קיבוץ לפי גוף, have/total, סדר חסרים-קודם, summary, גוף פעיל בלי מסמכים, גוף שהסתיים, `carry-forward` (יצירה/אידמפוטנטיות/לא-ממשיך-גוף-שהסתיים/לא-דורס-סלוט-קיים) |
 | `frontend/vitest.config.js` | קונפיג Vitest (jsdom, globals, setup) |
 | `frontend/src/test/setup.js` | טעינת jest-dom matchers |
 | `frontend/src/test/components.test.jsx` | טסטי רכיבי React (RTL): Navigation, Dashboard, EntityList, התראות מועדים |
@@ -147,6 +152,7 @@
 | `frontend/src/test/checklist.test.jsx` | טסטי `ChecklistPage`: תג פיקוח "הושלם אוטומטית", אישור, "החזר לממתין" מנקה קישור למסמך, **בורר שנה** (ברירת מחדל בלי קריאת API, שליפת שנה אחרת, הוספת משימה לשנה הנבחרת), **תג "נוצרה אוטומטית" + אישור (`auto_created`)** |
 | `frontend/src/test/analyze.test.jsx` | טסטי הזיהוי בכרטיס (החלפת קובץ → ניתוח אוטומטי, מועד חידוש, תג פיקוח, **תקציר/סכומים**, **תג/בורר "עבור מי"** בתיבת הניתוח ובכרטיס) |
 | `frontend/src/test/deadlines.test.js` | טסטי יחידה לפונקציית הדחיפות (`getUrgency` וכו') |
+| `frontend/src/test/readiness.test.jsx` | טסטי `ReadinessPage`: מספרי סיכום+מד התקדמות, קבוצות לפי גוף עם מונה יש/סה"כ, chip יש/חסר, `carry-forward` (POST), מתג "רק החסרים" מסתיר פריטים שהתקבלו+קבוצות מוכנות, הוספת פריט (POST ל-`/api/documents` עם `entity_id`/`year`) |
 | `playwright.config.js` | קונפיג E2E: מפעיל backend (DB זרוע) + frontend, chromium מקומי |
 | `e2e/smoke.spec.js` | טסטי E2E בדפדפן אמיתי — זרימות מלאות, כולל קליטה חכמה, פיקוח ומחזור משימות שנתי (גלגול + שנה הבאה דרך בורר השנה) |
 
@@ -256,6 +262,12 @@
 - תלוי ב-`documents.year` וב-`financial_entities.active_from/active_until` (נוספו במיגרציה ב-`init.js`)
 - Frontend: `pages/ComparisonPage.jsx`
 - לוגיקה: missing=היה אשתקד+גוף פעיל+חסר השנה · received=בשתי השנים · added=חדש · ended=גוף עם `active_until` קודם
+
+### מוכנות לרו״ח (readiness) — תצוגה לפי גוף
+- Backend: `backend/routes/readiness.js` (`GET /api/readiness/:year`, `POST /api/readiness/:year/carry-forward`) — **לא טבלה/מושג חדש**, שכבת תצוגה מעל `documents` הקיימת: `file_path` קיים=✅ התקבל, ריק=🔴 חסר
+- `GET`: גוף נכלל אם יש לו `documents` בשנה **או** הוא `activeIn` (אותה לוגיקה מ-`comparison.js`) — כך גוף פעיל בלי מסמכים עדיין מופיע (רשימה ריקה, לא מוסתר). קיבוץ: גופים עם חוסרים קודם (הכי הרבה חוסרים ראשון), בתוך כל גוף — פריטים חסרים קודם
+- `POST /carry-forward`: לכל מסמך של `year-1` שגופו עדיין `activeIn(:year)` ואין לו כבר סלוט (`entity_id`+`document_name`) ב-`:year` — יוצר סלוט `pending` בלי קובץ. אידמפוטנטי (לא יוצר כפול בהרצה חוזרת)
+- Frontend: `pages/ReadinessPage.jsx` + `components/ReadinessGroup.jsx` + `styles/readiness.css` — מסך ייעודי, מחובר ב-`App.jsx`/`Navigation.jsx` (`currentPage === 'readiness'`, כפתור מיד אחרי "עמוד הבית"). העלאה לפריט חסר → `POST /api/documents/:id/upload` (ה-`PUT` הרגיל לא קובע `file_path`); הוספת פריט → `POST /api/documents`; מחיקה → `DELETE /api/documents/:id`; סיום/החזרת התקשרות עם גוף → `PUT /api/entities/:id` עם **האובייקט המלא** (אין COALESCE ב-PUT הזה) — `active_until: 'YYYY-12-31'` לסיום, `null` להחזרה לצפי; ייצוא → קישור `download` ל-`/api/export/action-list.csv?year=`. מכבד `useReadOnly()` — מסתיר כל פעולת עריכה, משאיר תצוגה+ייצוא
 
 ### עמוד הבית / דאשבורד
 - `components/Dashboard.jsx` — כל הלוגיקה של הסטטיסטיקות והתצוגה

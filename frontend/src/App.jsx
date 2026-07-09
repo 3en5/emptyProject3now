@@ -9,6 +9,7 @@ import DocumentPage from './pages/DocumentPage';
 import AccountsPage from './pages/AccountsPage';
 import ReportsPage from './pages/ReportsPage';
 import ComparisonPage from './pages/ComparisonPage';
+import ReadinessPage from './pages/ReadinessPage';
 import MonthlyPage from './pages/MonthlyPage';
 import { ReadOnlyContext } from './ReadOnlyContext';
 
@@ -268,6 +269,8 @@ export default function App() {
         {currentPage === 'reports' && <ReportsPage />}
 
         {currentPage === 'comparison' && <ComparisonPage />}
+
+        {currentPage === 'readiness' && <ReadinessPage />}
 
         {currentPage === 'monthly' && <MonthlyPage />}
       </main>

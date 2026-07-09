@@ -380,3 +380,23 @@ test('מחזור מעוגן בשנת המסמך: מסמך מ-2022 רושם הש�
   await page.locator('.filter-select').selectOption('2023');
   await expect(page.locator('.status-section:not(.completed) .task-item').filter({ hasText: 'נוצרה אוטומטית' }).first()).toBeVisible();
 });
+
+test('מוכנות לרו״ח: צ׳קליסט לפי גוף + מודאל פירוט בלחיצה על שורה', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /מוכנות לרו/ }).click();
+
+  // כותרת + סיכום מוכנות
+  await expect(page.locator('.page h1').filter({ hasText: /מוכנות לרו/ })).toBeVisible();
+  await expect(page.getByText(/מתוך/).first()).toBeVisible();
+
+  // לחיצה על שורת צ׳קליסט פותחת מודאל רחב עם פירוט
+  await page.locator('.rdn-row-btn').first().click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText('גוף', { exact: true })).toBeVisible();
+  await expect(modal.getByText('מועד יעד')).toBeVisible();
+
+  // סגירת המודאל ב-Esc
+  await page.keyboard.press('Escape');
+  await expect(modal).not.toBeVisible();
+});

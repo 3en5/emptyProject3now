@@ -22,6 +22,14 @@ export default function Navigation({ currentPage, onPageChange, readOnly, onTogg
         </li>
         <li>
           <button
+            className={`nav-button ${currentPage === 'readiness' ? 'active' : ''}`}
+            onClick={() => onPageChange('readiness')}
+          >
+            🧾 מוכנות לרו״ח
+          </button>
+        </li>
+        <li>
+          <button
             className={`nav-button ${currentPage === 'entities' ? 'active' : ''}`}
             onClick={() => onPageChange('entities')}
           >
