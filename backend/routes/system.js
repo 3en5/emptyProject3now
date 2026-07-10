@@ -115,6 +115,18 @@ router.post('/update/apply', async (req, res) => {
   try {
     if (!isGitRepo()) return res.status(400).json({ error: 'התיקייה אינה Git clone — לא ניתן לעדכן אוטומטית' });
     const branch = await run('git rev-parse --abbrev-ref HEAD');
+
+    // שינויים מקומיים לא-מחויבים בקבצי מקור (למשל שינויי line-endings ב-Windows, או
+    // index.css שנערך) גורמים ל-git pull להיכשל ("would be overwritten by merge").
+    // שומרים אותם בצד אוטומטית (stash) כדי שהעדכון פשוט יעבוד. finance.db ותיקיית
+    // uploads מוחרגים ב-.gitignore ולכן אינם נכללים ב-stash — הנתונים בטוחים. (LESSONS #11)
+    let stashed = false;
+    const dirty = await run('git status --porcelain');
+    if (dirty.trim()) {
+      await run('git stash push -u -m "גיבוי-אוטומטי לפני עדכון תוכנה"');
+      stashed = true;
+    }
+
     const pull = await run(`git pull --ff-only origin ${branch}`, 120000);
     await run('npm install --silent');
     await run('npm install --prefix frontend --silent');
@@ -124,7 +136,8 @@ router.post('/update/apply', async (req, res) => {
       ok: true,
       pull,
       current,
-      note: 'העדכון הותקן. רעננו את הדף לראות שינויי ממשק; להשלמת שינויי צד-שרת יש להפעיל מחדש את השרת.',
+      stashed,
+      note: `העדכון הותקן${stashed ? ' (שינויים מקומיים נשמרו בצד אוטומטית — git stash)' : ''}. רעננו את הדף לראות שינויי ממשק; להשלמת שינויי צד-שרת יש להפעיל מחדש את השרת.`,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

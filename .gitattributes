@@ -1,0 +1,15 @@
+# נירמול סופי-שורה: כל קבצי הטקסט מאוחסנים ב-git עם LF ומומרים לפי המערכת בעת checkout.
+# מונע מ-Windows (CRLF) לסמן קבצי מקור כ"שונו" ולשבור את git pull בעדכון האוטומטי.
+* text=auto eol=lf
+
+# קבצי Windows batch — תמיד CRLF (נדרש להרצה תקינה ב-cmd)
+*.bat text eol=crlf
+
+# בינאריים — בלי המרה
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.ico binary
+*.db binary

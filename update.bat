@@ -27,6 +27,10 @@ if errorlevel 1 (
 )
 
 echo [1/4] Pulling latest changes from GitHub...
+REM Local source edits (or Windows line-ending churn) can block the pull with
+REM "would be overwritten by merge". Set them aside automatically first.
+REM Your data (finance.db) and uploads are gitignored, so they are never touched.
+git stash push -u -m "auto-stash before update" >nul 2>nul
 git pull
 if errorlevel 1 (
   echo [ERROR] git pull failed. Check your internet connection.
